@@ -6,6 +6,9 @@ build: main
 run: build
 	./main
 
+check: build
+	valgrind --tool=memcheck --track-origins=yes --leak-check=yes ./main
+
 main: main.o lib1718.o
 	$(CC) -o $@ $^
 
