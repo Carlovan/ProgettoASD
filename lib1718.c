@@ -4,7 +4,40 @@
 #include <string.h>
 #include <ctype.h>
 
-char trash[1000];
+// Chiama free su una lista di stringhe
+void freeStrings(char*** l, size_t n) {
+	for(int i = 0; i < n; i++)
+		free((*l)[i]);
+	free(*l);
+}
+
+// Libera tutta la memoria allocata per un query_t
+void freeQuery(query_t *q) {
+	if(q->table != NULL)
+		free(q->table);
+	if(q->data != NULL) {
+		for(query_data_t *i = q->data; i->colName != NULL; i++) {
+			free(i->colName);
+			if(i->value != NULL)
+				free(i->value);
+		}
+		free(q->data);
+	}
+}
+
+// Restituisce un nuovo oggetto query_t
+query_t newQuery() {
+	query_t q = {0, NULL, NULL};
+	return q;
+}
+
+// Restituisce un nuovo oggetto query_data_t
+query_data_t newQueryData() {
+	query_data_t q;
+	q.colName = NULL;
+	q.value = NULL;
+	return q;
+}
 
 /* Divide la stringa s usando delim come delimitatore.
  * Rimuove gli spazi all'inizio e alla fine di ogni pezzo.
@@ -41,32 +74,56 @@ size_t splitAndTrim(char* s, const char delim, char*** splits) {
 	return count;
 }
 
+// Indica se la stringa passata è un nome di colonna valido.
+//   - inizia con una lettera
+//   - contiene solo lettere, numeri e underscore
+bool isValidColName(char* name) {
+	if(name[0] == 0) return 0;
+	if(!isalpha(name[0])) return 0;
+	for(char *c = name; *c != 0; c++)
+		if(!isalpha(*c) && !isdigit(*c) && *c != '_')
+			return 0;
+	return 1;
+}
+
 bool parseCreate(char* query, query_t* parsed) {
 	parsed->action = ACTION_CREATE;
 	int readCount = 0;
-	char cols[1000];
+	char cols[1000], table[1000], semicolon[2];
+	memset(cols, 0, 1000);
+	memset(table, 0, 1000);
+	memset(semicolon, 0, 2);
 
-	readCount = sscanf(query, " CREATE TABLE %s (%[^)]) %1[;]", parsed->table, cols, trash);
+	readCount = sscanf(query, " CREATE TABLE %s (%[^)]) %1[;]", table, cols, semicolon);
 	if(readCount != 3) return 0;
+	parsed->table = (char*)malloc(strlen(table) + 1);
+	strcpy(parsed->table, table);
 
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
-	printf("%lu\n", colCount);
-	for(int i = 0; i < colCount; i++)
-		printf("%s\n", colNames[i]);
 
-	// Libero la memoria
-	for(int i = 0; i < colCount; i++)
-		free(colNames[i]);
-	free(colNames);
+	for(int i = 0; i < colCount; i++) {
+		if(!isValidColName(colNames[i])) {
+			freeStrings(&colNames, colCount);
+			return 0;
+		}
+	}
 
+	parsed->data = (query_data_t*)malloc((colCount+1) * sizeof(query_data_t));
+	for(size_t i = 0; i < colCount; i++) {
+		parsed->data[i] = newQueryData();
+		parsed->data[i].colName = colNames[i];
+	}
+	parsed->data[colCount] = newQueryData(); // Inizializzo anche l'ultimo che è come terminatore
+
+	free(colNames); // Libero solo la lista, le stringhe sono ancora utilizzate
 	return 1;
 }
 
 bool parseQuery(char* query, query_t* parsed) {
 	int readCount;
 	
-	char command[MAX_S_LEN];
+	char command[1000];
 	readCount = sscanf(query, " %s ", command);
 	if(readCount != 1) return 0;
 

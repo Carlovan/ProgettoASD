@@ -5,21 +5,19 @@
 #define true 1
 #define false 0
 
-#define MAX_S_LEN     256
-
 #define ACTION_CREATE 1
 #define ACTION_INSERT 2
 #define ACTION_SELECT 3
 typedef int action_t;
 
 typedef struct {
-	char colName[MAX_S_LEN];
-	char value[MAX_S_LEN];
+	char *colName;
+	char *value;
 } query_data_t;
 
 typedef struct {
 	action_t action;
-	char table[MAX_S_LEN];
+	char *table;
 	query_data_t *data;
 } query_t;
 
@@ -29,5 +27,7 @@ typedef struct {
 bool executeQuery(char*); 
 
 bool parseQuery(char* query, query_t* parsed);
-
+void freeQuery(query_t*);
+query_t newQuery();
+query_data_t newQueryData();
 #endif //LIB1718_H
