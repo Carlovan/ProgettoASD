@@ -120,6 +120,59 @@ bool parseCreate(char* query, query_t* parsed) {
 	return 1;
 }
 
+bool parseInsert(char* query, query_t* parsed) {
+	parsed->action = ACTION_INSERT;
+	int readCount = 0;
+	char cols[1000], table[1000], values[1000], semicolon[2];
+	memset(cols, 0, 1000);
+	memset(table, 0, 1000);
+	memset(values, 0, 1000);
+	memset(semicolon, 0, 2);
+
+	readCount = sscanf(query, " INSERT INTO %s (%[^)]) VALUES (%[^)]) %1[;]", table, cols, values, semicolon);
+	if(readCount != 4) return 0;
+	parsed->table = (char*)malloc(strlen(table) + 1);
+	strcpy(parsed->table, table);
+
+	char **colNames;
+	size_t colCount = splitAndTrim(cols, ',', &colNames);
+	for(size_t i = 0; i < colCount; i++) {
+		if(!isValidColName(colNames[i])) {
+			freeStrings(&colNames, colCount);
+			return 0;
+		}
+	}
+
+	char **valList;
+	size_t valCount = splitAndTrim(values, ',', &valList);
+	for(size_t i = 0; i < valCount; i++) {
+		size_t valLen = strlen(valList[i]);
+		if(valLen < 2 || (valList[i][0] != '\'' || valList[i][valLen-1] != '\'')) {
+			freeStrings(&colNames, colCount);
+			freeStrings(&valList, valCount);
+			return 0;
+		}
+	}
+
+	if(valCount != colCount) {
+		freeStrings(&colNames, colCount);
+		freeStrings(&valList, valCount);
+		return 0;
+	}
+
+	parsed->data = (query_data_t*)malloc((colCount+1) * sizeof(query_data_t));
+	for(size_t i = 0; i < colCount; i++) {
+		parsed->data[i] = newQueryData();
+		parsed->data[i].colName = colNames[i];
+		parsed->data[i].value = valList[i];
+	}
+	parsed->data[colCount] = newQueryData(); // Inizializzo anche l'ultimo che è come terminatore
+
+	free(colNames); // Libero solo la lista, le stringhe sono ancora utilizzate
+	free(valList);
+	return 1;
+}
+
 bool parseQuery(char* query, query_t* parsed) {
 	int readCount;
 	
@@ -130,7 +183,7 @@ bool parseQuery(char* query, query_t* parsed) {
 	if(strcmp("CREATE", command) == 0) {
 		return parseCreate(query, parsed);
 	} else if(strcmp("INSERT", command) == 0) {
-		parsed->action = ACTION_INSERT;
+		return parseInsert(query, parsed);
 	} else if(strcmp("SELECT", command) == 0){
 		parsed->action = ACTION_SELECT;
 	}
