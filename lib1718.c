@@ -120,6 +120,25 @@ bool parseCreate(char* query, query_t* parsed) {
 	return 1;
 }
 
+// Indica se la stringa passata è un valore valido
+//   - inizia e finisce con ' (stringa)
+//   - non inizia con zero E sono tutte cifre (numero)
+bool isValidValue(char *val) {
+	size_t valLen = strlen(val);
+	if(valLen == 0)
+		return 0;
+	// È una stringa
+	if(valLen >= 2 && (val[0] == '\'' && val[valLen-1] == '\''))
+		return 1;
+	// Controllo se è un numero valido
+	if(val[0] == '0') // Non puo iniziare per 0
+		return 0;
+	for(char *c = val; *c != 0; c++)
+		if(!isdigit(*c))
+			return 0;
+	return 1;
+}
+
 bool parseInsert(char* query, query_t* parsed) {
 	parsed->action = ACTION_INSERT;
 	int readCount = 0;
@@ -146,8 +165,7 @@ bool parseInsert(char* query, query_t* parsed) {
 	char **valList;
 	size_t valCount = splitAndTrim(values, ',', &valList);
 	for(size_t i = 0; i < valCount; i++) {
-		size_t valLen = strlen(valList[i]);
-		if(valLen < 2 || (valList[i][0] != '\'' || valList[i][valLen-1] != '\'')) {
+		if(!isValidValue(valList[i])) {
 			freeStrings(&colNames, colCount);
 			freeStrings(&valList, valCount);
 			return 0;
