@@ -3,7 +3,7 @@
 
 int main() {
 	query_t parsed = newQuery();
-	bool ok = parseQuery("    INSERT  INTO giovanni (i,	 ciccione_8   ) VALUES (1, '123   '   );", &parsed);
+	bool ok = parseQuery("    SELECT  i, a, b FROM asd ;", &parsed);
 	if(ok) {
 		printf("%d, %s\nCOLS:\n", parsed.action, parsed.table);
 		for(query_data_t *i = parsed.data; i->colName != NULL; i++)

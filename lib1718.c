@@ -50,7 +50,7 @@ size_t splitAndTrim(char* s, const char delim, char*** splits) {
 		if(*c == delim)
 			count++;
 	}
-	
+
 	// Alloco la memoria necessaria
 	*splits = (char**)malloc(count * sizeof(char*));
 	char** output = *splits;
@@ -58,7 +58,7 @@ size_t splitAndTrim(char* s, const char delim, char*** splits) {
 	// Scorro tutta la stringa
 	for(char *c = s; *c != 0; c++) {
 		char *tb = 0, *te = 0;
-		for(;*c != 0 && *c != delim; c++) {
+		for(; *c != 0 && *c != delim; c++) {
 			if(!isblank(*c)) {
 				if(tb == NULL)
 					tb = c;
@@ -71,18 +71,24 @@ size_t splitAndTrim(char* s, const char delim, char*** splits) {
 		(*output)[len] = 0;
 		output++;
 	}
+	// In questo caso l'ultimo output non è inizializzato
+	if(s[strlen(s)-1] == delim) {
+		*output = (char*)malloc(1);
+		(*output)[0] = 0;
+	}
 	return count;
 }
 
 // Indica se la stringa passata è un nome di colonna valido.
 //   - inizia con una lettera
 //   - contiene solo lettere, numeri e underscore
-bool isValidColName(char* name) {
+bool isValidName(char* name) {
 	if(name[0] == 0) return 0;
 	if(!isalpha(name[0])) return 0;
-	for(char *c = name; *c != 0; c++)
+	for(char *c = name; *c != 0; c++) {
 		if(!isalpha(*c) && !isdigit(*c) && *c != '_')
 			return 0;
+	}
 	return 1;
 }
 
@@ -103,7 +109,7 @@ bool parseCreate(char* query, query_t* parsed) {
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
 
 	for(int i = 0; i < colCount; i++) {
-		if(!isValidColName(colNames[i])) {
+		if(!isValidName(colNames[i])) {
 			freeStrings(&colNames, colCount);
 			return 0;
 		}
@@ -133,9 +139,10 @@ bool isValidValue(char *val) {
 	// Controllo se è un numero valido
 	if(val[0] == '0') // Non puo iniziare per 0
 		return 0;
-	for(char *c = val; *c != 0; c++)
+	for(char *c = val; *c != 0; c++) {
 		if(!isdigit(*c))
 			return 0;
+	}
 	return 1;
 }
 
@@ -156,7 +163,7 @@ bool parseInsert(char* query, query_t* parsed) {
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
 	for(size_t i = 0; i < colCount; i++) {
-		if(!isValidColName(colNames[i])) {
+		if(!isValidName(colNames[i])) {
 			freeStrings(&colNames, colCount);
 			return 0;
 		}
@@ -191,9 +198,67 @@ bool parseInsert(char* query, query_t* parsed) {
 	return 1;
 }
 
+bool parseSelect(char *query, query_t* parsed) {
+	parsed->action = ACTION_SELECT;
+	char cols[1000], table[1000], semicolon[2];
+	memset(cols, 0, 1000);
+	memset(table, 0, 1000);
+	memset(semicolon, 0, 2);
+
+	// Trovo la prima occorrenza di 'SELECT' e controllo che sia preceduta solo da spazi
+	char *SELECT = strstr(query, "SELECT");
+	if(SELECT == NULL)
+		return 0;
+	for(char *c = query; c < SELECT; c++) {
+		if(!isblank(*c))
+			return 0;
+	}
+
+	// Trovo la prima occorrenza di FROM: quello che è tra SELECT e FROM è la lista delle colonne
+	char *FROM = strstr(query, "FROM");
+	if(FROM == NULL)
+		return 0;
+	strncpy(cols, SELECT+6, FROM-(SELECT+6));
+
+	// Splitto la lista di colonne e controllo che siano nomi validi
+	char **colNames;
+	size_t colCount = splitAndTrim(cols, ',', &colNames);
+	for(size_t i = 0; i < colCount; i++) {
+		if(!isValidName(colNames[i])) {
+			freeStrings(&colNames, colCount);
+			return 0;
+		}
+	}
+
+	parsed->data = (query_data_t*)malloc((colCount+1) * sizeof(query_data_t));
+	for(size_t i = 0; i < colCount; i++) {
+		parsed->data[i] = newQueryData();
+		parsed->data[i].colName = colNames[i];
+	}
+	parsed->data[colCount] = newQueryData();
+	free(colNames); // Libero solo il puntatore, le stringhe sono in parsed->data
+
+	// Prendo il nome della tabella
+	char *c;
+	for(c = FROM+4; *c != 0 && isblank(*c); c++);
+	for(size_t i = 0; *c != 0 && !isblank(*c); i++, c++) {
+		table[i] = *c;
+	}
+	if(!isValidName(table))
+		return 0;
+
+
+	char *end = strstr(FROM, ";");
+	if(end == NULL) {
+		return 0;
+	}
+
+	return 1;
+}
+
 bool parseQuery(char* query, query_t* parsed) {
 	int readCount;
-	
+
 	char command[1000];
 	readCount = sscanf(query, " %s ", command);
 	if(readCount != 1) return 0;
@@ -202,8 +267,11 @@ bool parseQuery(char* query, query_t* parsed) {
 		return parseCreate(query, parsed);
 	} else if(strcmp("INSERT", command) == 0) {
 		return parseInsert(query, parsed);
-	} else if(strcmp("SELECT", command) == 0){
-		parsed->action = ACTION_SELECT;
+	} else if(strcmp("SELECT", command) == 0) {
+		return parseSelect(query, parsed);
+	} else {
+		parsed->data = (query_data_t*)malloc(sizeof(query_data_t));
+		parsed->data[0] = newQueryData();
 	}
 
 	return 0;
