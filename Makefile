@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -O0 -g
+CFLAGS=-Wall --pedantic -O0 -g
 
 build: main
 
