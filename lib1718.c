@@ -239,18 +239,47 @@ bool parseSelect(char *query, query_t* parsed) {
 	free(colNames); // Libero solo il puntatore, le stringhe sono in parsed->data
 
 	// Prendo il nome della tabella
-	char *c;
-	for(c = FROM+4; *c != 0 && isblank(*c); c++);
-	for(size_t i = 0; *c != 0 && !isblank(*c); i++, c++) {
-		table[i] = *c;
+	char *tablePointer;
+	for(tablePointer = FROM+4; *tablePointer != 0 && isblank(*tablePointer); tablePointer++);
+	for(size_t i = 0; *tablePointer != 0 && !isblank(*tablePointer) && *tablePointer != ';'; i++, tablePointer++) {
+		table[i] = *tablePointer;
 	}
 	if(!isValidName(table))
 		return 0;
 
+	parsed->filter = 0;
+	char *filtPos;
+	if((filtPos = strstr(tablePointer, "WHERE")) != NULL)
+		parsed->filter = FILTER_WHERE;
+	else if((filtPos = strstr(tablePointer, "ORDER")) != NULL)
+		parsed->filter = FILTER_ORDERBY;
+	else if((filtPos = strstr(tablePointer, "GROUP")) != NULL)
+		parsed->filter = FILTER_GROUPBY;
 
-	char *end = strstr(FROM, ";");
+	char *nextToRead = tablePointer;
+
+	if(parsed->filter != 0) {
+		// Controllo che sia preceduto solo da spazi
+		for(char *c = tablePointer; c < filtPos; c++) {
+			if(!isblank(*c)) {
+				return 0;
+			}
+		}
+
+		nextToRead = filtPos + 5; // Tutti e 3 i filtri sono lunghi 5 LOL
+		if(!isblank(*nextToRead)) // Deve esserci uno spazio
+			return 0;
+	}
+
+
+	char *end = strstr(tablePointer, ";");
 	if(end == NULL) {
 		return 0;
+	}
+	for(char *c = nextToRead; c < end; c++) {
+		if(!isblank(*c)) {
+			return 0;
+		}
 	}
 
 	return 1;
