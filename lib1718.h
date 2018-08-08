@@ -24,14 +24,14 @@ typedef int filter_t;
 #define OP_DESC 26
 typedef int filter_op_t;
 
-typedef struct {
+typedef struct { 
 	char *colName;
 	char *value;
 } query_data_t;
 
 typedef struct {
 	action_t action;
-	char *table;
+	char *table;// non dovrebbe essere un char***?	%	
 	query_data_t *data;
 	filter_t filter;
 	char *filterField;
@@ -39,13 +39,22 @@ typedef struct {
 	char *filterValue;
 } query_t;
 
+
+
 /* Input:  La stringa contenente la query da eseguire, ad esempio "CREATE TABLE studenti (matricola, nome, cognome)"
  * Output: true/false, se l'esecuzione della query e' andata a buon fine o meno (presenza di eventuali errori)
  */
 bool executeQuery(char*); 
 
-bool parseQuery(char* query, query_t* parsed);
-void freeQuery(query_t*);
-query_t newQuery();
-query_data_t newQueryData();
+bool parseQuery(char* query, query_t* parsed); //create insert select
+bool parseSelect(char *query, query_t* parsed);
+bool parseInsert(char* query, query_t* parsed);
+bool parseCreate(char* query, query_t* parsed);
+bool isValidValue(char *val); //da rivedere
+bool isValidName(char* name); //perchè non puoi inizare per numero e non può avere underscore
+size_t splitAndTrim(char* s, const char delim, char*** splits);//come crei la tabella ?
+void freeQuery(query_t*);//forse da rivedere
+query_t newQuery();//forse da rifare
+query_data_t newQueryData();//forse da rifare 
+void freeStrings(char*** l, size_t n)//forse da rivedere
 #endif //LIB1718_H

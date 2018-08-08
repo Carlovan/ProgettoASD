@@ -14,11 +14,11 @@ void freeStrings(char*** l, size_t n) {
 // Libera tutta la memoria allocata per un query_t
 void freeQuery(query_t *q) {
 	if(q->table != NULL)
-		free(q->table);
+		free(q->table);//forse da rivedere %
 	if(q->data != NULL) {
 		for(query_data_t *i = q->data; i->colName != NULL; i++) {
 			free(i->colName);
-			if(i->value != NULL)
+			if(i->value != NULL)//se il colName esiste allora esiste anche il Value%
 				free(i->value);
 		}
 		free(q->data);
