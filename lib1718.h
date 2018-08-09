@@ -5,6 +5,7 @@
 #define true 1
 #define false 0
 
+
 #define ACTION_CREATE 1
 #define ACTION_INSERT 2
 #define ACTION_SELECT 3
@@ -39,6 +40,15 @@ typedef struct {
 	char *filterValue;
 } query_t;
 
+//stuttura per il caricamento della tabella
+typedef struct {
+	char* table;//nome della tabella
+	char** columns;//nume delle colonne
+	char*** data;//memorizazione di tutta la tabella
+}table_DB;
+
+
+
 
 
 /* Input:  La stringa contenente la query da eseguire, ad esempio "CREATE TABLE studenti (matricola, nome, cognome)"
@@ -52,9 +62,17 @@ bool parseInsert(char* query, query_t* parsed);
 bool parseCreate(char* query, query_t* parsed);
 bool isValidValue(char *val); //da rivedere
 bool isValidName(char* name); //perchè non puoi inizare per numero e non può avere underscore
-size_t splitAndTrim(char* s, const char delim, char*** splits);//come crei la tabella ?
+//size_t splitAndTrim(char* s, const char delim, char*** splits);//come crei la tabella ?%% PROBLEMA SIZE_T
 void freeQuery(query_t*);//forse da rivedere
 query_t newQuery();//forse da rifare
 query_data_t newQueryData();//forse da rifare 
-void freeStrings(char*** l, size_t n)//forse da rivedere
+//void freeStrings(char*** l, size_t n)//forse da rivedere %%PROBLEMA SIZE_T
+bool sortDB(table_DB DB);//funzione mastre per l'ordinamento di una tabella
+bool sortDBnum(table_DB DB);//funzione slave: ordina per numeri
+bool sortDBstr(table_DB DB);//funzione slave: ordina per stringa
+int srcCOLUMNS(char**columns, char* src);//ritorna l'indice della colonna da ordinare es: columns={nome,cognome,tel} src={tel} return=2
+bool identifyINT(table_DB DB,int columns);//ritorna 0 se la colonna è stringa ritorna 1 se la colonna è un numero
+
+
+
 #endif //LIB1718_H
