@@ -67,11 +67,11 @@ void freeQuery(query_t*);//forse da rivedere
 query_t newQuery();//forse da rifare
 query_data_t newQueryData();//forse da rifare 
 //void freeStrings(char*** l, size_t n)//forse da rivedere %%PROBLEMA SIZE_T
-bool sortDB(table_DB DB);//funzione mastre per l'ordinamento di una tabella
-bool sortDBnum(table_DB DB);//funzione slave: ordina per numeri
-bool sortDBstr(table_DB DB);//funzione slave: ordina per stringa
-int srcCOLUMNS(char**columns, char* src);//ritorna l'indice della colonna da ordinare es: columns={nome,cognome,tel} src={tel} return=2
-bool identifyINT(table_DB DB,int columns);//ritorna 0 se la colonna è stringa ritorna 1 se la colonna è un numero
+bool sortDB(table_DB* DB, char *columns);//funzione master per l'ordinamento di una tabella; ordina la tabella per la colonna data 
+bool sortDBnum(table_DB* DB,int id_columns);//funzione slave: ordina per numeri
+bool sortDBstr(table_DB* DB,int id_columns);//funzione slave: ordina per stringa
+int srcCOLUMNS(char**columns, char* src);//ritorna l'indice della colonna da ordinare es: columns={nome,cognome,tel} src={tel} return=2; return=-1 se non esiste
+bool identifyINT(char* elem);//ritorna false se elem è stringa; ritorna true se elem è un numero
 
 
 

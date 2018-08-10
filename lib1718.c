@@ -305,3 +305,40 @@ bool parseQuery(char* query, query_t* parsed) {
 
 	return 0;
 }
+
+bool sortDB(table_DB* DB, char *columns) {
+	int id_columns;
+	bool typeINT, error;
+
+	//cerca indice della tabella
+	id_columns = srcCOLUMNS(DB->columns, columns);
+	if (id_columns == -1)
+		return false;
+
+	//scopro il tipo della colonna
+	typeINT = identifyINT(DB->columns[id_columns]);
+
+	//ordino per numero o per stringa
+	if (typeINT == true)
+		error = sortDBnum(DB, id_columns);
+	else
+		error = sortDBstr(DB, id_columns);
+	if (error == false)
+		return false;
+	return true;
+}
+
+
+bool sortDBnum(table_DB* DB, int id_columns) {
+	return true;
+}
+bool sortDBstr(table_DB* DB, int id_columns){
+	return true;
+}
+int srcCOLUMNS(char**columns, char* src) {
+	return true;
+}
+
+bool identifyINT(char* elem) {
+	return true;
+}
