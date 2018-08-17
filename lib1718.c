@@ -306,6 +306,13 @@ bool parseQuery(char* query, query_t* parsed) {
 	return 0;
 }
 
+/*************************************************************************************************
+**																								**
+**					BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA				**
+**																								**	
+*************************************************************************************************/
+
+//master
 bool sortDB(table_DB* DB, char *columns) {
 	int id_columns;
 	bool typeINT, error;
@@ -316,29 +323,205 @@ bool sortDB(table_DB* DB, char *columns) {
 		return false;
 
 	//scopro il tipo della colonna
-	typeINT = identifyINT(DB->columns[id_columns]);
+	typeINT = identifyINT(DB->data[1][id_columns]);
 
 	//ordino per numero o per stringa
 	if (typeINT == true)
 		error = sortDBnum(DB, id_columns);
 	else
-		error = sortDBstr(DB, id_columns);
+		sortDBstrQUICKSORT(DB, id_columns,0, sizeof(DB) / sizeof(DB[0]));
 	if (error == false)
 		return false;
 	return true;
 }
 
-
+//ordinamento di interi
 bool sortDBnum(table_DB* DB, int id_columns) {
-	return true;
-}
-bool sortDBstr(table_DB* DB, int id_columns){
-	return true;
-}
-int srcCOLUMNS(char**columns, char* src) {
+	//dichiarazioni delle variabili
+	int* vet, size,i;
+
+	//inizializazione delle variabili
+	size = sizeof(DB) / sizeof(DB[0]);//trovo numero righe
+	i = 0;
+
+	//trasformare la colonna di char in un vettore di interi 
+	vet = (int*)malloc(size * sizeof(int));
+	if (vet == NULL)
+		return false;
+
+	//carichiamo i valori nel vettore
+	while (i < size);
+	{
+		vet[i] = atoi(DB->data[i][id_columns]);
+		i++;
+	}
+
+	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
+	sortDBnumQUICKSORT(DB,vet,0,size-1);
+
 	return true;
 }
 
-bool identifyINT(char* elem) {
-	return true;
+//funzione ausiliare per l'ordinamento di interi
+void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per una colonna di interi una tabella
+{
+	int p;
+	if (low < high)//passo base
+	{
+		//la partition restituisce il punto in cui spaccare nuovamente il vettore
+		p = sortDBnumPARTITION(DB, vet, low, high);
+
+		//richiamo il quicksort su i due sotto vettori
+		sortDBnumQUICKSORT(DB,vet, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
+		sortDBnumQUICKSORT(DB,vet, p + 1, high);
+	}
 }
+
+//funzione ausiliare per l'ordinamento di interi
+int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition della funzione sortDBnumQUICKSORT
+{
+	//dichiarazione delle variabili
+	int pivot, j, i;
+
+	//inizializzo le variabili
+	pivot = vet[high];    // pivot
+	i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
+
+
+	for (j = low; j <= high - 1; j++)
+	{
+		//guardo se l'elemento che sto guardando è più piccolo del pivot
+		if (vet[j] <= pivot)
+		{
+			i++;    //mi posiziono al primo numero non minore del pivot che ho trovato nel vettore (se non ho ancora trovato nessun elemento maggiore fa il cambio con sestesso)
+			sortDBnumSWAP(&vet[i], &vet[j],&DB->data[i],&DB->data[j]);
+		}
+	}
+	i++;
+	sortDBnumSWAP(&vet[i], &vet[high] , &DB->data[i], &DB->data[high]);
+	return (i);
+
+}
+
+//funzione ausiliare per l'ordinamento di  interi
+void sortDBnumSWAP(int* a, int* b, char***c, char***d)
+{
+	//dichiarazione delle variabili
+	int aux_int;
+	char **aux_char;
+
+	//inizializazione
+	aux_int = *a;
+	aux_char = *c;
+
+	//swap
+	*a = *b;
+	*b = aux_int;
+	*c = *d;
+	*d = aux_char;
+}
+
+//ordiamento di stringhe
+void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
+	int p;
+	if (low < high)//passo base
+	{
+		//la partition restituisce il punto in cui spaccare nuovamente il vettore
+		p = sortDBstrPARTITION(DB, id_columns, low, high);
+
+		//richiamo il quicksort su i due sotto vettori
+		sortDBstrQUICKSORT(DB, id_columns, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
+		sortDBstrQUICKSORT(DB, id_columns, p + 1, high);
+	}
+	
+	
+	
+}
+
+//funzione ausiliare per l'ordinamento stringhe
+int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partition della funzione sortDBnumQUICKSORT
+{
+	//dichiarazione delle variabili
+	int j, i;
+	char*pivot;
+
+	//inizializzo le variabili
+	pivot = DB->data[high][id_columns];// pivot: vado a l'ultima riga e prendo la colonna che devo ordinare
+	i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
+
+
+	for (j = low; j <= high - 1; j++)
+	{
+		//guardo se l'elemento che sto guardando è più piccolo del pivot
+		if (strcmp(DB->data[j][id_columns],pivot)<=0)//ordinamento per ASCII
+		{
+			i++;    //mi posiziono al primo numero non minore del pivot che ho trovato nel vettore (se non ho ancora trovato nessun elemento maggiore fa il cambio con sestesso)
+			sortDBstrSWAP(&DB->data[i], &DB->data[j]);
+		}
+	}
+	i++;
+	sortDBstrSWAP(&DB->data[i], &DB->data[high]);
+	return (i);
+}
+
+//funzione ausiliare per l'ordinamento di stringhe
+void sortDBstrSWAP(char***a, char***b) {
+	char **aux;
+	aux = *a;
+	*a = *b;
+	*b = aux;
+}
+
+//trova la colonna da ordinare
+int srcCOLUMNS(char**columns, char* src) {
+	
+	//dichiarazione delle variabili
+	int size,i;
+	bool trovato;
+
+	//inizializazione delle variabili
+	size = sizeof(columns)/sizeof(columns[0]);//quante colonne ci sono
+	i = 0;
+	trovato = 0;
+
+	//trovo la parola 
+	while (i < size && !trovato)
+	{
+		if (strcmp(columns[i], src) == 0)
+			trovato = true;
+		else
+			i++;
+	}
+
+	//se la trovo restiuisco l'indice se non la trovo restituisco -1
+	if (trovato)
+		return i;
+	return -1;
+}
+
+//verfifica se la colonna è un intero
+bool identifyINT(char* elem) {
+
+	//dichiarazione delle variabili
+	bool ISaNUMBER = true;
+	int i = 0;
+
+	//guardo se è un intero o una stringa
+	while (i < strlen(elem) && ISaNUMBER)
+	{
+	if (!isdigit(elem[i]))
+		ISaNUMBER = false;
+	i++;
+	}
+
+	//se è un numero intero allora arriva alla fine della stringa altrimenti si ferma prima
+	if(i==strlen(elem))
+		return true;
+	return false;
+}
+
+/*************************************************************************************************
+**																								**
+**				FINE BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA				**
+**																								**
+*************************************************************************************************/
