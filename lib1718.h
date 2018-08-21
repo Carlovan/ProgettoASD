@@ -45,6 +45,7 @@ typedef struct {
 	char* table_name;//nome della tabella
 	char** columns;//nume delle colonne
 	char*** data;//memorizazione di tutta la tabella
+
 }table_DB;
 
 
@@ -62,11 +63,9 @@ bool parseInsert(char* query, query_t* parsed);
 bool parseCreate(char* query, query_t* parsed);
 bool isValidValue(char *val); //da rivedere
 bool isValidName(char* name); //perchè non puoi inizare per numero e non può avere underscore
-//size_t splitAndTrim(char* s, const char delim, char*** splits);//come crei la tabella ?%% PROBLEMA SIZE_T
 void freeQuery(query_t*);//forse da rivedere
 query_t newQuery();//forse da rifare
 query_data_t newQueryData();//forse da rifare 
-//void freeStrings(char*** l, size_t n)//forse da rivedere %%PROBLEMA SIZE_T
 
 //blocco ordinamento di una tabella per una determinata colonna
 bool sortDB(table_DB* DB, char *columns);//funzione master per l'ordinamento di una tabella; ordina la tabella per la colonna data 
@@ -78,5 +77,10 @@ void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);//ordina per 
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);//partition della funzione sortDBnumQUICKSORT
 void sortDBnumSWAP(int* a, int* b,char***c,char***d);
 void sortDBstrSWAP(char***a, char***b);
+
+/********select********/
+bool select_order_by(char*order_by, bool desc, table_DB*DB);//ordina la tabella pre una data colonna, DESC vale TRUE solo se devo ordinare in maniera DECRESCENETE
+
+
 
 #endif //LIB1718_H

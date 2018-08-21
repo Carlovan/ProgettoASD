@@ -329,7 +329,7 @@ bool sortDB(table_DB* DB, char *columns) {
 	if (typeINT == true)
 		error = sortDBnum(DB, id_columns);
 	else
-		sortDBstrQUICKSORT(DB, id_columns,0, sizeof(DB) / sizeof(DB[0]));
+		sortDBstrQUICKSORT(DB, id_columns,0, sizeof(DB->data) / sizeof(DB->data[0]));
 	if (error == false)
 		return false;
 	return true;
@@ -341,7 +341,7 @@ bool sortDBnum(table_DB* DB, int id_columns) {
 	int* vet, size,i;
 
 	//inizializazione delle variabili
-	size = sizeof(DB) / sizeof(DB[0]);//trovo numero righe
+	size = sizeof(DB->data) / sizeof(DB->data[0]);//trovo numero righe
 	i = 0;
 
 	//trasformare la colonna di char in un vettore di interi 
@@ -350,8 +350,7 @@ bool sortDBnum(table_DB* DB, int id_columns) {
 		return false;
 
 	//carichiamo i valori nel vettore
-	while (i < size);
-	{
+	while (i < size){
 		vet[i] = atoi(DB->data[i][id_columns]);
 		i++;
 	}
@@ -366,8 +365,7 @@ bool sortDBnum(table_DB* DB, int id_columns) {
 void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per una colonna di interi una tabella
 {
 	int p;
-	if (low < high)//passo base
-	{
+	if (low < high){//passo base
 		//la partition restituisce il punto in cui spaccare nuovamente il vettore
 		p = sortDBnumPARTITION(DB, vet, low, high);
 
@@ -525,3 +523,69 @@ bool identifyINT(char* elem) {
 **				FINE BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA				**
 **																								**
 *************************************************************************************************/
+
+
+
+/*************************************************************************************************
+**																								**
+**										BLOCCO SELECTION										**
+**																								**
+*************************************************************************************************/
+
+
+//SENZA FILTRI
+
+//WHERE
+
+//ORDER BY desc vale true quando è desc; desc vale false quando è asc
+bool select_order_by(char*order_by, bool desc, table_DB*DB) {
+	
+	//dichiarazione
+	int last, i;
+	char**aux;//serve per invertire la tabella
+	bool errore;
+
+	//inizializazione
+	i = 0;
+	last = sizeof(DB->data) / sizeof(DB->data[0]) - 1;//inizializzo last al l'ultimo elemento della tabella
+	
+	//ordina
+	errore = sortDB(DB, order_by);
+	if (errore == false)
+		return false;
+	
+	if (desc == true)//inverti tabella
+	{
+		while (last>i)
+		{
+			aux = DB->data[i];
+			DB->data[i] = DB->data[last];
+			DB->data[last] = aux;
+			i++;
+			last--;
+		}
+	}
+	return true;
+
+}
+
+
+//GROUP BY
+bool select_group_by(char*group_by, bool desc, table_DB*DB){
+	//dichiarazione
+	int last, i;
+	bool errore;
+
+	//inizializazione
+	i = 0;
+	last = sizeof(DB->data) / sizeof(DB->data[0]) - 1;//inizializzo last al l'ultimo elemento della tabella
+
+	//ordina
+	errore = sortDB(DB, group_by);
+	if (errore == false)
+		return false;
+
+	//group
+	
+	return true;
+}
