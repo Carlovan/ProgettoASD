@@ -350,7 +350,7 @@ bool sortDBnum(table_DB* DB, int id_columns) {
 		return false;
 
 	//carichiamo i valori nel vettore
-	while (i < size){
+	while (i < size) {
 		vet[i] = atoi(DB->data[i][id_columns]);
 		i++;
 	}
@@ -463,7 +463,7 @@ int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partitio
 }
 
 //funzione ausiliare per l'ordinamento di stringhe
-void sortDBstrSWAP(char***a, char***b) {
+void sortDBstrSWAP(char*** a, char*** b) {
 	char **aux;
 	aux = *a;
 	*a = *b;
@@ -471,7 +471,7 @@ void sortDBstrSWAP(char***a, char***b) {
 }
 
 //trova la colonna da ordinare
-int srcCOLUMNS(char**columns, char* src) {
+int srcCOLUMNS(char** columns, char* src) {
 	
 	//dichiarazione delle variabili
 	int size,i;
