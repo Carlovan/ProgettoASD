@@ -45,7 +45,8 @@ typedef struct {
 	char* table_name;//nome della tabella
 	char** columns;//nume delle colonne
 	char*** data;//memorizazione di tutta la tabella
-
+	int n_columns;//numero colonne// usiamo la notazione umana non quella vettoriale: vedi sotto
+	int n_row;//numero righe //usiamo la notazione umana e non quella vettoriale: se ci sono 5 righe allora Row=5 e non a 4  	
 }table_DB;
 
 
@@ -71,7 +72,7 @@ query_data_t newQueryData();//forse da rifare
 bool sortDB(table_DB* DB, char *columns);//funzione master per l'ordinamento di una tabella; ordina la tabella per la colonna data 
 bool sortDBnum(table_DB* DB,int id_columns);//funzione slave: ordina per numeri
 void sortDBstrQUICKSORT(table_DB* DB,int id_columns, int low, int high);//funzione slave: ordina per stringa
-int srcCOLUMNS(char**columns, char* src);//ritorna l'indice della colonna da ordinare es: columns={nome,cognome,tel} src={tel} return=2; return=-1 se non esiste
+int srcCOLUMNS(char**columns, char* src,int n_columns);//ritorna l'indice della colonna da ordinare es: columns={nome,cognome,tel} src={tel} return=2; return=-1 se non esiste
 bool identifyINT(char* elem);//ritorna false se elem è stringa; ritorna true se elem è un numero
 void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);//ordina per una colonna di interi una tabella
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);//partition della funzione sortDBnumQUICKSORT
@@ -79,8 +80,8 @@ void sortDBnumSWAP(int* a, int* b,char***c,char***d);
 void sortDBstrSWAP(char***a, char***b);
 
 /********select********/
-bool select_order_by(char*order_by, bool desc, table_DB*DB);//ordina la tabella pre una data colonna, DESC vale TRUE solo se devo ordinare in maniera DECRESCENETE
-
+bool selectORDERby(char*order_by, bool desc, table_DB*DB);//ordina la tabella pre una data colonna, DESC vale TRUE solo se devo ordinare in maniera DECRESCENETE
+int* selectGROUPby(char*group_by, bool desc, table_DB*DB);
 
 
 #endif //LIB1718_H

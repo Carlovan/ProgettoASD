@@ -307,10 +307,23 @@ bool parseQuery(char* query, query_t* parsed) {
 }
 
 /*************************************************************************************************
-**																								**
-**					BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA				**
-**																								**	
+**                                                                                              **
+**                    BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA              **
+**                                                                                              **	
 *************************************************************************************************/
+
+//dichiarazione di tutte le funzioni per eliminare i warning
+bool sortDB(table_DB* DB, char *columns);
+bool sortDBnum(table_DB* DB, int id_columns);
+void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);
+int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);
+void sortDBnumSWAP(int* a, int* b, char***c, char***d);
+void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high);
+int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high);
+void sortDBstrSWAP(char*** a, char*** b);
+int srcCOLUMNS(char** columns, char* src);
+bool identifyINT(char* elem);
+
 
 //master
 bool sortDB(table_DB* DB, char *columns) {
@@ -318,7 +331,7 @@ bool sortDB(table_DB* DB, char *columns) {
 	bool typeINT, error;
 
 	//cerca indice della tabella
-	id_columns = srcCOLUMNS(DB->columns, columns);
+	id_columns = srcCOLUMNS(DB->columns, columns,DB->n_columns);
 	if (id_columns == -1)
 		return false;
 
@@ -329,7 +342,7 @@ bool sortDB(table_DB* DB, char *columns) {
 	if (typeINT == true)
 		error = sortDBnum(DB, id_columns);
 	else
-		sortDBstrQUICKSORT(DB, id_columns,0, sizeof(DB->data) / sizeof(DB->data[0]));
+		sortDBstrQUICKSORT(DB, id_columns,0,DB->n_row);
 	if (error == false)
 		return false;
 	return true;
@@ -338,25 +351,24 @@ bool sortDB(table_DB* DB, char *columns) {
 //ordinamento di interi
 bool sortDBnum(table_DB* DB, int id_columns) {
 	//dichiarazioni delle variabili
-	int* vet, size,i;
+	int* vet,i;
 
 	//inizializazione delle variabili
-	size = sizeof(DB->data) / sizeof(DB->data[0]);//trovo numero righe
 	i = 0;
 
 	//trasformare la colonna di char in un vettore di interi 
-	vet = (int*)malloc(size * sizeof(int));
+	vet = (int*)malloc(DB->n_row * sizeof(int));
 	if (vet == NULL)
 		return false;
 
 	//carichiamo i valori nel vettore
-	while (i < size) {
+	while (i < DB->n_row) {
 		vet[i] = atoi(DB->data[i][id_columns]);
 		i++;
 	}
 
 	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
-	sortDBnumQUICKSORT(DB,vet,0,size-1);
+	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);//-1 perché il vettore parte da 0 
 
 	return true;
 }
@@ -471,19 +483,18 @@ void sortDBstrSWAP(char*** a, char*** b) {
 }
 
 //trova la colonna da ordinare
-int srcCOLUMNS(char** columns, char* src) {
+int srcCOLUMNS(char** columns, char* src, int n_columns) {
 	
 	//dichiarazione delle variabili
-	int size,i;
+	int i;
 	bool trovato;
 
 	//inizializazione delle variabili
-	size = sizeof(columns)/sizeof(columns[0]);//quante colonne ci sono
 	i = 0;
 	trovato = 0;
 
 	//trovo la parola 
-	while (i < size && !trovato)
+	while (i < n_columns && !trovato)
 	{
 		if (strcmp(columns[i], src) == 0)
 			trovato = true;
@@ -519,17 +530,17 @@ bool identifyINT(char* elem) {
 }
 
 /*************************************************************************************************
-**																								**
-**				FINE BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA				**
-**																								**
+**                                                                                              **
+**              FINE BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA               **
+**                                                                                              **
 *************************************************************************************************/
 
 
 
 /*************************************************************************************************
-**																								**
-**										BLOCCO SELECTION										**
-**																								**
+**                                                                                              **
+**                                        BLOCCO SELECTION                                      **
+**                                                                                              **
 *************************************************************************************************/
 
 
@@ -538,8 +549,7 @@ bool identifyINT(char* elem) {
 //WHERE
 
 //ORDER BY desc vale true quando è desc; desc vale false quando è asc
-bool select_order_by(char*order_by, bool desc, table_DB*DB) {
-	
+bool selectORDERby(char*order_by, bool desc, table_DB*DB) {
 	//dichiarazione
 	int last, i;
 	char**aux;//serve per invertire la tabella
@@ -547,7 +557,7 @@ bool select_order_by(char*order_by, bool desc, table_DB*DB) {
 
 	//inizializazione
 	i = 0;
-	last = sizeof(DB->data) / sizeof(DB->data[0]) - 1;//inizializzo last al l'ultimo elemento della tabella
+	last = DB->n_row-1;
 	
 	//ordina
 	errore = sortDB(DB, order_by);
@@ -571,14 +581,21 @@ bool select_order_by(char*order_by, bool desc, table_DB*DB) {
 
 
 //GROUP BY
-bool select_group_by(char*group_by, bool desc, table_DB*DB){
+int* selectGROUPby(char*group_by, bool desc, table_DB*DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
 	//dichiarazione
-	int last, i;
+	int id_group, i,count_group,id_columns,*vet;
 	bool errore;
 
 	//inizializazione
-	i = 0;
-	last = sizeof(DB->data) / sizeof(DB->data[0]) - 1;//inizializzo last al l'ultimo elemento della tabella
+	i = 0;//indice che scorre tutto il DB
+	id_group = 0;//che si posiziona dove socreascrivere il prossimo elemento
+	count_group = 1;//contatore delle righe che hanno la colonna uguale
+	id_columns = srcCOLUMNS(DB->columns, group_by, DB->n_columns);
+	if (id_columns == -1)
+		return NULL;
+	vet = (int*)malloc(DB->n_row * sizeof(int));
+	if (vet == NULL)
+		return NULL;
 
 	//ordina
 	errore = sortDB(DB, group_by);
@@ -586,6 +603,18 @@ bool select_group_by(char*group_by, bool desc, table_DB*DB){
 		return false;
 
 	//group
-	
-	return true;
+	while (i<DB->n_row){
+		if (strcmp(DB->data[i][id_columns], DB->data[i + 1][id_columns]) == 0) {
+			count_group++;//conto le righe che hanno le colonne uguali
+			i++;//vado avanti con le righe fino a quando sono uguali
+		}
+		else{//se sono diversi raggruppo
+			vet[id_group] = count_group;//carico il numero di righe uguali nel vettore
+			DB->data[id_group] = DB->data[i];//carico la riga nella prima disponibile 
+			id_group++;//incremento l'indice in cui andrò a scrivere/sovrascrivere al prossimo raggruppo
+			count_group = 1;//inizializzo di nuovo il conteggio
+		}
+	}
+	DB->n_row = count_group;//aggiorno il nuovo numero righe
+	return vet;
 }
