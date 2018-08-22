@@ -544,9 +544,13 @@ bool identifyINT(char* elem) {
 *************************************************************************************************/
 
 
-//SENZA FILTRI
+//SENZA FILTRI(stampi direttamente la tabella senza fare niente solo con le colonne che sono richieste 
 
 //WHERE
+bool selectWHERE(char *where, char valore, int operatore) {
+	//da completare
+	return true;
+}
 
 //ORDER BY desc vale true quando è desc; desc vale false quando è asc
 bool selectORDERby(char*order_by, bool desc, table_DB*DB) {
@@ -579,9 +583,8 @@ bool selectORDERby(char*order_by, bool desc, table_DB*DB) {
 
 }
 
-
 //GROUP BY
-int* selectGROUPby(char*group_by, bool desc, table_DB*DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
+int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
 	//dichiarazione
 	int id_group, i,count_group,id_columns,*vet;
 	bool errore;

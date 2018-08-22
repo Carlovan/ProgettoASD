@@ -81,7 +81,7 @@ void sortDBstrSWAP(char***a, char***b);
 
 /********select********/
 bool selectORDERby(char*order_by, bool desc, table_DB*DB);//ordina la tabella pre una data colonna, DESC vale TRUE solo se devo ordinare in maniera DECRESCENETE
-int* selectGROUPby(char*group_by, bool desc, table_DB*DB);
+int* selectGROUPby(char*group_by, table_DB*DB);
 
 
 #endif //LIB1718_H
