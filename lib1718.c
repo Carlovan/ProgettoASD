@@ -547,8 +547,54 @@ bool identifyINT(char* elem) {
 //SENZA FILTRI(stampi direttamente la tabella senza fare niente solo con le colonne che sono richieste 
 
 //WHERE
-bool selectWHERE(char *where, char valore, int operatore) {
-	//da completare
+bool selectWHERE(char *where, char valore, int operatore, table_DB*DB) {
+	//dichiarazione
+	bool typeINTa, typeINTb;
+	int id_columns;
+
+	//inizializazione
+	id_columns = srcCOLUMNS(DB->columns, where, DB->n_columns);
+	if (id_columns == -1)
+		return false;
+	typeINTa = identifyINT(valore);
+	typeINTb = identifyINT(DB->data[1][id_columns]);
+	if (typeINTa != typeINTb)
+		return false;
+
+	//inizio il confronto
+	if (typeINTa == true) {//confronto per numeri interi
+		switch (operatore){
+			case OP_EQ://uguale
+				break;
+			case OP_GT://maggiore
+				break;
+			case OP_GE://maggiore uguale
+				break;
+			case OP_LT://minore
+				break;
+			case OP_LE://minore uguale
+				break;
+		}
+	}
+	else {//confronto tra stringhe
+		switch (operatore) {
+			case OP_EQ://uguale
+				break;
+			case OP_GT://maggiore
+				break;
+			case OP_GE://maggiore uguale
+				break;
+			case OP_LT://minore
+				break;
+			case OP_LE://minore uguale
+				break;
+		}
+	
+	}
+
+
+
+
 	return true;
 }
 
@@ -591,7 +637,7 @@ int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando
 
 	//inizializazione
 	i = 0;//indice che scorre tutto il DB
-	id_group = 0;//che si posiziona dove socreascrivere il prossimo elemento
+	id_group = 0;//che si posiziona dove si può sovrascrivere il prossimo elemento
 	count_group = 1;//contatore delle righe che hanno la colonna uguale
 	id_columns = srcCOLUMNS(DB->columns, group_by, DB->n_columns);
 	if (id_columns == -1)

@@ -16,11 +16,11 @@ typedef int action_t;
 #define FILTER_ORDERBY 12
 typedef int filter_t;
 
-#define OP_EQ 20
-#define OP_GT 21
-#define OP_GE 22
-#define OP_LT 23
-#define OP_LE 24
+#define OP_EQ 20//uguale
+#define OP_GT 21//maggiore
+#define OP_GE 22//maggiore uguale
+#define OP_LT 23//minore
+#define OP_LE 24//minore uguale
 #define OP_ASC 25
 #define OP_DESC 26
 typedef int filter_op_t;
@@ -44,7 +44,7 @@ typedef struct {
 typedef struct {
 	char* table_name;//nome della tabella
 	char** columns;//nume delle colonne
-	char*** data;//memorizazione di tutta la tabella
+	char*** data;//memorizazione di tutta la tabella. es: data[riga][colonna]
 	int n_columns;//numero colonne// usiamo la notazione umana non quella vettoriale: vedi sotto
 	int n_row;//numero righe //usiamo la notazione umana e non quella vettoriale: se ci sono 5 righe allora Row=5 e non a 4  	
 }table_DB;
