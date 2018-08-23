@@ -547,13 +547,15 @@ bool identifyINT(char* elem) {
 //SENZA FILTRI(stampi direttamente la tabella senza fare niente solo con le colonne che sono richieste 
 
 //WHERE
-bool selectWHERE(char *where, char valore, int operatore, table_DB*DB) {
+bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 	//dichiarazione
-	bool typeINTa, typeINTb;
-	int id_columns;
+	bool typeINTa, typeINTb,confronto;
+	int id_columns,i,*vet,aux;
 
 	//inizializazione
-	id_columns = srcCOLUMNS(DB->columns, where, DB->n_columns);
+	confronto = false;
+	i = 0;
+	id_columns = srcCOLUMNS(DB->columns, whereCOLUMNS, DB->n_columns);
 	if (id_columns == -1)
 		return false;
 	typeINTa = identifyINT(valore);
@@ -561,9 +563,56 @@ bool selectWHERE(char *where, char valore, int operatore, table_DB*DB) {
 	if (typeINTa != typeINTb)
 		return false;
 
-	//inizio il confronto
-	if (typeINTa == true) {//confronto per numeri interi
-		switch (operatore){
+	//se sono interi bisogna creare il vettore di interi per velocizzare i confronti
+	if (typeINTb == true) {
+		//trasformare la colonna di char in un vettore di interi 
+		vet = (int*)malloc(DB->n_row * sizeof(int));
+		if (vet == NULL)
+			return false;
+
+		//carichiamo i valori nel vettore
+		while (i < DB->n_row) {
+			vet[i] = atoi(DB->data[i][id_columns]);
+			i++;
+		}
+	}
+	aux = atoi(valore);
+
+
+	//mi scorrro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
+	while (i < DB->n_row) {
+		//inizio il confronto
+		if (typeINTa == true) {//confronto per numeri interi
+			switch (operatore) {
+			case OP_EQ://uguale
+				if (vet[i] == aux) {
+					confronto = true;
+				}
+				break;
+			case OP_GT://maggiore
+				if (vet[i] > aux) {
+					confronto = true;
+				}
+				break;
+			case OP_GE://maggiore uguale
+				if (vet[i]>= aux) {
+					confronto = true;
+				}
+				break;
+			case OP_LT://minore
+				if (vet[i] < aux) {
+					confronto = true;
+				}
+				break;
+			case OP_LE://minore uguale
+				if (vet[i] <= aux) {
+					confronto = true;
+				}
+				break;
+			}
+		}
+		else {//confronto tra stringhe
+			switch (operatore) {
 			case OP_EQ://uguale
 				break;
 			case OP_GT://maggiore
@@ -574,27 +623,10 @@ bool selectWHERE(char *where, char valore, int operatore, table_DB*DB) {
 				break;
 			case OP_LE://minore uguale
 				break;
+			}
+
 		}
 	}
-	else {//confronto tra stringhe
-		switch (operatore) {
-			case OP_EQ://uguale
-				break;
-			case OP_GT://maggiore
-				break;
-			case OP_GE://maggiore uguale
-				break;
-			case OP_LT://minore
-				break;
-			case OP_LE://minore uguale
-				break;
-		}
-	
-	}
-
-
-
-
 	return true;
 }
 
