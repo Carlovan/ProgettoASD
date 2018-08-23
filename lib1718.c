@@ -550,11 +550,12 @@ bool identifyINT(char* elem) {
 bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 	//dichiarazione
 	bool typeINTa, typeINTb,confronto;
-	int id_columns,i,*vet,aux;
+	int id_columns,i,*vet,aux,id_where;
 
 	//inizializazione
 	confronto = false;
 	i = 0;
+	id_where = 0;//dove andrò a sovrascrivere
 	id_columns = srcCOLUMNS(DB->columns, whereCOLUMNS, DB->n_columns);
 	if (id_columns == -1)
 		return false;
@@ -562,6 +563,7 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 	typeINTb = identifyINT(DB->data[1][id_columns]);
 	if (typeINTa != typeINTb)
 		return false;
+	
 
 	//se sono interi bisogna creare il vettore di interi per velocizzare i confronti
 	if (typeINTb == true) {
@@ -578,8 +580,7 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 	}
 	aux = atoi(valore);
 
-
-	//mi scorrro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
+	//mi scorro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
 	while (i < DB->n_row) {
 		//inizio il confronto
 		if (typeINTa == true) {//confronto per numeri interi
@@ -641,7 +642,17 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 			}
 
 		}
+		
+		//sovrascrivo se rispetta il confronto
+		if (confronto == true) {
+			confronto = false;
+			DB->data[id_where] = DB->data[confronto];
+			id_where++;
+		}
 	}
+
+	//aggiorno il numero righe 
+	DB->n_row = id_where;
 	return true;
 }
 
@@ -714,3 +725,9 @@ int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando
 	DB->n_row = count_group;//aggiorno il nuovo numero righe
 	return vet;
 }
+
+/*************************************************************************************************
+**                                                                                              **
+**                                      FINE BLOCCO SELECTION                                   **
+**                                                                                              **
+*************************************************************************************************/
