@@ -614,14 +614,29 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 		else {//confronto tra stringhe
 			switch (operatore) {
 			case OP_EQ://uguale
+				if (strcmp(DB->data[i][id_columns],valore) == 0) {
+					confronto = true;
+				}
 				break;
 			case OP_GT://maggiore
+				if (strcmp(DB->data[i][id_columns], valore)> 0) {
+					confronto = true;
+				}
 				break;
 			case OP_GE://maggiore uguale
+				if (strcmp(DB->data[i][id_columns], valore) >= 0) {
+					confronto = true;
+				}
 				break;
 			case OP_LT://minore
+				if (strcmp(DB->data[i][id_columns],valore) < 0) {
+					confronto = true;
+				}
 				break;
 			case OP_LE://minore uguale
+				if (strcmp(DB->data[i][id_columns],valore) <= 0) {
+					confronto = true;
+				}
 				break;
 			}
 
