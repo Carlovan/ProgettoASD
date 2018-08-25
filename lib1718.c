@@ -4,6 +4,8 @@
 #include <string.h>
 #include <ctype.h>
 
+
+
 // Chiama free su una lista di stringhe
 void freeStrings(char*** l, size_t n) {
 	for(int i = 0; i < n; i++)
@@ -731,3 +733,58 @@ int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando
 **                                      FINE BLOCCO SELECTION                                   **
 **                                                                                              **
 *************************************************************************************************/
+
+/*************************************************************************************************
+**                                                                                              **
+**                                        MAIN: EXECUTEQUERY                                    **
+**                                                                                              **
+*************************************************************************************************/
+
+bool executeQuery(char*str) {
+	//dichiarazione variabili
+	int  i;
+	bool error;
+	query_t *query;
+	table_DB *DB;
+
+	//inizializazione delle variabili
+	query = (query_t*)malloc(sizeof(query_t));	
+	if (query == NULL) 
+		return false;
+	DB = (table_DB*)malloc(sizeof(table_DB));
+	if (DB == NULL)
+		return false;
+	//error = parsed(str, query);//costruisce la struttura query_t 
+	if (!error) 
+		return false;
+	//error = buildTable(query->table,DB);//costruisce la struttura tabella partendo dal file
+	
+	switch (query->action){
+		case ACTION_CREATE:
+			//action create
+			//stampa create 
+			break;
+		case ACTION_INSERT:
+			//action insert
+			//stampa insert
+			break;
+		case ACTION_SELECT:
+			switch (query->filter){
+				case FILTER_NONE:
+					//action selection none
+					break;
+				case FILTER_WHERE:
+					//action selection where
+					break;
+				case FILTER_ORDERBY:
+					//action selection order
+					break;
+				case FILTER_GROUPBY:
+					//stampa speciale<------ATTENZIONE------->
+					break;
+				//stampa selection
+			}
+			break;
+	}
+	return true;
+}
