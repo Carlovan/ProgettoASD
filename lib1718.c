@@ -659,7 +659,7 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 }
 
 //ORDER BY desc vale true quando è desc; desc vale false quando è asc
-bool selectORDERby(char*order_by, bool desc, table_DB*DB) {
+bool selectORDERby(char*order_by, int desc, table_DB*DB) {
 	//dichiarazione
 	int last, i;
 	char**aux;//serve per invertire la tabella
@@ -674,7 +674,7 @@ bool selectORDERby(char*order_by, bool desc, table_DB*DB) {
 	if (errore == false)
 		return false;
 	
-	if (desc == true)//inverti tabella
+	if (desc == OP_DESC)//inverti tabella
 	{
 		while (last>i)
 		{
@@ -742,7 +742,7 @@ int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando
 
 bool executeQuery(char*str) {
 	//dichiarazione variabili
-	int  i;
+	int  i,group_by;
 	bool error;
 	query_t *query;
 	table_DB *DB;
@@ -761,28 +761,36 @@ bool executeQuery(char*str) {
 	
 	switch (query->action){
 		case ACTION_CREATE:
-			//action create
-			//stampa create 
+			//funzione action create
+			//funzione stampa create 
 			break;
 		case ACTION_INSERT:
-			//action insert
-			//stampa insert
+			//funzione action insert
+			//funzione stampa insert
 			break;
 		case ACTION_SELECT:
 			switch (query->filter){
 				case FILTER_NONE:
-					//action selection none
+					//action/stampa selection none
 					break;
 				case FILTER_WHERE:
-					//action selection where
+					error = selectWHERE(query->filterField, query->filterValue,query->op, DB);
 					break;
 				case FILTER_ORDERBY:
-					//action selection order
+					error=selectORDERby(query->filterField, query->op, DB);
+					if (!error)
+						return false;
 					break;
 				case FILTER_GROUPBY:
+					group_by = selectGROUPby(query->filterField, DB);
+					if (group_by == NULL)
+						return false;
 					//stampa speciale<------ATTENZIONE------->
+					//stampaGroupBy(int *group_by,table_DB *DB,int id_collumns);//tipo di prototipo di funzione per la stampa del groupBy, la funzione group by restituisce un vettore di interi l'indice i-esimo del vettore corrisponde a quante volte si ripete la riga iesima del DB
 					break;
-				//stampa selection
+				if (query->filter != FILTER_GROUPBY)
+						//stampa selection; dato che io nelle selectiono vado  a modificare il DB basta stampare il DB per stampare il risultato della selection
+					;
 			}
 			break;
 	}

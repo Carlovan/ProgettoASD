@@ -43,9 +43,9 @@ typedef struct {
 
 	/*valori stampa*/
 	char **columns;//colonne da stampare 
-	int n_columns;
+	int n_columns;//numero colonne da stampare 
 
-	query_data_t *data;
+	query_data_t *data;//penso che questa sia la tabella ta eliminare 
 
 } query_t;
 
