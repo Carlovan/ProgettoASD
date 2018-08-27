@@ -11,52 +11,53 @@
 #define ACTION_SELECT 3
 typedef int action_t;
 
-#define FILTER_NONE 00
-#define FILTER_WHERE 10
-#define FILTER_GROUPBY 11
-#define FILTER_ORDERBY 12
+#define FILTER_NONE 10
+#define FILTER_WHERE 11
+#define FILTER_GROUPBY 12
+#define FILTER_ORDERBY 13
 typedef int filter_t;
 
-#define OP_EQ 20//uguale
-#define OP_GT 21//maggiore
-#define OP_GE 22//maggiore uguale
-#define OP_LT 23//minore
-#define OP_LE 24//minore uguale
-#define OP_ASC 25
-#define OP_DESC 26
+#define OP_EQ 20 // Uguale
+#define OP_GT 21 // Maggiore
+#define OP_GE 22 // Maggiore o uguale
+#define OP_LT 23 // Minore
+#define OP_LE 24 // Minore o uguale
+#define OP_ASC 25 // Ordine ascendente
+#define OP_DESC 26 // Ordine discendente
 typedef int filter_op_t;
 
+// Rappresenta una coppia colonna valore, usata nell'interpretazione della query
 typedef struct { 
 	char *colName;
 	char *value;
 } query_data_t;
 
+// Rappresenta le caratteristiche di una query
 typedef struct {
-	char *table;//nome tabella
-	action_t action;//selection,create,insert
-	filter_t filter;//se è una selection indica il tipo: none,where,group,order
-	filter_op_t op;//operatori di where,group
+	char *table; // Nome tabella
+	action_t action; // SELECTION, CREATE, INSERT
 
-	/*valori selection*/
-	char *filterField;//colonna in cui fare le selection
-	char *filterValue;//valore della colonna
+	// Lista di colonne/valori interessate dalla query, terminata da un valore con colName e value entrambi NULL:
+	// colonne tabella per CREATE
+	// colonne e valori da inserire per INSERT
+	// colonne da visualizzare per SELECT
+	query_data_t *data;
 
-	/*valori stampa*/
-	char **columns;//colonne da stampare 
-	int n_columns;//numero colonne da stampare 
-
-	query_data_t *data;//penso che questa sia la tabella ta eliminare 
-
+	// Specifici per SELECT
+	filter_t filter; // NONE, WHERE, GROUP, ORDER
+	filter_op_t op; // Operatore per WHERE, GROUP
+	char *filterField; // Campo su cui applicare il filtro
+	char *filterValue; // Valore con cui confrontare il campo
 } query_t;
 
-//stuttura per il caricamento della tabella
+// Rappresenta una tabella
 typedef struct {
-	char* table_name;//nome della tabella
-	char** columns;//nume delle colonne
-	char*** data;//memorizazione di tutta la tabella. es: data[riga][colonna]
-	int n_columns;//numero colonne// usiamo la notazione umana non quella vettoriale: vedi sotto
-	int n_row;//numero righe //usiamo la notazione umana e non quella vettoriale: se ci sono 5 righe allora Row=5 e non a 4  	
-}table_DB;
+	char* table_name;
+	char** columns;
+	char*** data; // Dati nella tabella. es: data[riga][colonna]
+	int n_columns;
+	int n_row;
+} table_DB;
 
 
 

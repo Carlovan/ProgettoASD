@@ -16,11 +16,16 @@ void freeStrings(char*** l, size_t n) {
 // Libera tutta la memoria allocata per un query_t
 void freeQuery(query_t *q) {
 	if(q->table != NULL)
-		free(q->table);//forse da rivedere %
+		free(q->table);
+	if(q->filterField != NULL)
+		free(q->filterField);
+	if(q->filterValue != NULL)
+		free(q->filterValue);
 	if(q->data != NULL) {
-		for(query_data_t *i = q->data; i->colName != NULL; i++) {
-			free(i->colName);
-			if(i->value != NULL)//se il colName esiste allora esiste anche il Value%
+		for(query_data_t *i = q->data; i->colName != NULL || i->value != NULL; i++) {
+			if(i->colName != NULL)
+				free(i->colName);
+			if(i->value != NULL)
 				free(i->value);
 		}
 		free(q->data);
@@ -29,7 +34,14 @@ void freeQuery(query_t *q) {
 
 // Restituisce un nuovo oggetto query_t
 query_t newQuery() {
-	query_t q = {0, NULL, NULL};
+	query_t q;
+	q.table = NULL;
+	q.action = 0;
+	q.data = NULL;
+	q.filter = FILTER_NONE;
+	q.op = 0;
+	q.filterField = NULL;
+	q.filterValue = NULL;
 	return q;
 }
 
@@ -94,6 +106,26 @@ bool isValidName(char* name) {
 	return 1;
 }
 
+// Indica se la stringa passata è un valore valido
+//   - inizia e finisce con ' (stringa)
+//   - non inizia con zero E sono tutte cifre (numero)
+bool isValidValue(char *val) {
+	size_t valLen = strlen(val);
+	if(valLen == 0)
+		return 0;
+	// È una stringa
+	if(valLen >= 2 && (val[0] == '\'' && val[valLen-1] == '\''))
+		return 1;
+	// Controllo se è un numero valido
+	if(val[0] == '0') // Non puo iniziare per 0
+		return 0;
+	for(char *c = val; *c != 0; c++) {
+		if(!isdigit(*c))
+			return 0;
+	}
+	return 1;
+}
+
 bool parseCreate(char* query, query_t* parsed) {
 	parsed->action = ACTION_CREATE;
 	int readCount = 0;
@@ -125,26 +157,6 @@ bool parseCreate(char* query, query_t* parsed) {
 	parsed->data[colCount] = newQueryData(); // Inizializzo anche l'ultimo che è come terminatore
 
 	free(colNames); // Libero solo la lista, le stringhe sono ancora utilizzate
-	return 1;
-}
-
-// Indica se la stringa passata è un valore valido
-//   - inizia e finisce con ' (stringa)
-//   - non inizia con zero E sono tutte cifre (numero)
-bool isValidValue(char *val) {
-	size_t valLen = strlen(val);
-	if(valLen == 0)
-		return 0;
-	// È una stringa
-	if(valLen >= 2 && (val[0] == '\'' && val[valLen-1] == '\''))
-		return 1;
-	// Controllo se è un numero valido
-	if(val[0] == '0') // Non puo iniziare per 0
-		return 0;
-	for(char *c = val; *c != 0; c++) {
-		if(!isdigit(*c))
-			return 0;
-	}
 	return 1;
 }
 
@@ -315,7 +327,7 @@ bool parseQuery(char* query, query_t* parsed) {
 *************************************************************************************************/
 
 //dichiarazione di tutte le funzioni per eliminare i warning
-bool sortDB(table_DB* DB, char *columns);
+bool sortDB(table_DB* DB, char *column);
 bool sortDBnum(table_DB* DB, int id_columns);
 void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);
@@ -323,28 +335,28 @@ void sortDBnumSWAP(int* a, int* b, char***c, char***d);
 void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high);
 int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high);
 void sortDBstrSWAP(char*** a, char*** b);
-int srcCOLUMNS(char** columns, char* src);
+int srcCOLUMNS(char** columns, char* src, int n_columns);
 bool identifyINT(char* elem);
 
 
-//master
-bool sortDB(table_DB* DB, char *columns) {
-	int id_columns;
+// Ordina le righe di una tabella in base alla colonna specificata
+bool sortDB(table_DB* DB, char *column) {
+	int id_column;
 	bool typeINT, error;
 
-	//cerca indice della tabella
-	id_columns = srcCOLUMNS(DB->columns, columns,DB->n_columns);
-	if (id_columns == -1)
+	// Indice delle colonna
+	id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
+	if (id_column == -1)
 		return false;
 
-	//scopro il tipo della colonna
-	typeINT = identifyINT(DB->data[1][id_columns]);
+	// Scopro il tipo della colonna
+	typeINT = identifyINT(DB->data[1][id_column]);
 
-	//ordino per numero o per stringa
+	// Ordino per numero o per stringa
 	if (typeINT == true)
-		error = sortDBnum(DB, id_columns);
+		error = sortDBnum(DB, id_column);
 	else
-		sortDBstrQUICKSORT(DB, id_columns,0,DB->n_row);
+		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row);
 	if (error == false)
 		return false;
 	return true;
@@ -412,7 +424,6 @@ int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition del
 	i++;
 	sortDBnumSWAP(&vet[i], &vet[high] , &DB->data[i], &DB->data[high]);
 	return (i);
-
 }
 
 //funzione ausiliare per l'ordinamento di  interi
@@ -445,9 +456,6 @@ void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
 		sortDBstrQUICKSORT(DB, id_columns, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
 		sortDBstrQUICKSORT(DB, id_columns, p + 1, high);
 	}
-	
-	
-	
 }
 
 //funzione ausiliare per l'ordinamento stringhe
@@ -486,7 +494,6 @@ void sortDBstrSWAP(char*** a, char*** b) {
 
 //trova la colonna da ordinare
 int srcCOLUMNS(char** columns, char* src, int n_columns) {
-	
 	//dichiarazione delle variabili
 	int i;
 	bool trovato;
@@ -512,7 +519,6 @@ int srcCOLUMNS(char** columns, char* src, int n_columns) {
 
 //verfifica se la colonna è un intero
 bool identifyINT(char* elem) {
-
 	//dichiarazione delle variabili
 	bool ISaNUMBER = true;
 	int i = 0;
