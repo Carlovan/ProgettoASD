@@ -58,7 +58,7 @@ query_data_t newQueryData() {
  * Alloca splits e ci mette tutti i pezzi.
  */
 size_t splitAndTrim(char* s, const char delim, char*** splits) {
-	// Conto quanti pezzi ci sono, considerando delimitatori in fila come uno unico
+	// Conto quanti pezzi ci sono
 	size_t count = 1;
 	for(char *c = s; *c != 0; c++) {
 		if(*c == delim)
@@ -104,6 +104,24 @@ bool isValidName(char* name) {
 			return 0;
 	}
 	return 1;
+}
+
+// Estrae una singola parola da una stringa (gruppo di non blank delimitato da blank) e rimuove i blank
+// Salta tutti i blank all'inizio della stringa e inizia a leggere dal primo non blank.
+// Si ferma quando trova un altro blank, alloca la memoria necessaria per dest e copia la stringa.
+// Se ci sono solo blank dest = NULL
+// Restituisce il primo byte non letto e non scartato
+char* readTrimWord(char* str, char** dest, char terminator) {
+	*dest = NULL;
+	for(; *str != terminator && isblank(*str); str++);
+	if(*str == terminator) return str;
+	char *c;
+	for(c = str; *c != terminator && !isblank(*c); c++);
+	size_t len = c - str;
+	*dest = (char*)malloc(len + 1);
+	strncpy(*dest, str, len);
+	(*dest)[len] = 0;
+	return c;
 }
 
 // Indica se la stringa passata è un valore valido
@@ -253,15 +271,10 @@ bool parseSelect(char *query, query_t* parsed) {
 	free(colNames); // Libero solo il puntatore, le stringhe sono in parsed->data
 
 	// Prendo il nome della tabella
-	char *tablePointer;
-	for(tablePointer = FROM+4; *tablePointer != 0 && isblank(*tablePointer); tablePointer++);
-	for(size_t i = 0; *tablePointer != 0 && !isblank(*tablePointer) && *tablePointer != ';'; i++, tablePointer++) {
-		table[i] = *tablePointer;
-	}
-	if(!isValidName(table))
+	char *tablePointer = readTrimWord(FROM+4, &(parsed->table), ';');
+	if(!isValidName(parsed->table))
 		return 0;
 
-	parsed->filter = 0;
 	char *filtPos;
 	if((filtPos = strstr(tablePointer, "WHERE")) != NULL)
 		parsed->filter = FILTER_WHERE;
@@ -272,7 +285,7 @@ bool parseSelect(char *query, query_t* parsed) {
 
 	char *nextToRead = tablePointer;
 
-	if(parsed->filter != 0) {
+	if(parsed->filter != FILTER_NONE) {
 		// Controllo che sia preceduto solo da spazi
 		for(char *c = tablePointer; c < filtPos; c++) {
 			if(!isblank(*c)) {
@@ -285,11 +298,74 @@ bool parseSelect(char *query, query_t* parsed) {
 			return 0;
 	}
 
+	if(parsed->filter == FILTER_ORDERBY || parsed->filter == FILTER_GROUPBY) {
+		char *by = strstr(nextToRead, "BY");
+		if(by == NULL) {
+			return 0;
+		}
+		// Controllo che sia preceduto solo da spazi e che sia seguito da uno spazio
+		for(char *c = nextToRead; c < by; c++) {
+			if(!isblank(*c)) {
+				return 0;
+			}
+		}
+		if(!isblank(*(by + 2))) {
+			return 0;
+		}
+		nextToRead = by + 2;
+	}
 
-	char *end = strstr(tablePointer, ";");
+	char *end = strstr(nextToRead, ";");
 	if(end == NULL) {
 		return 0;
 	}
+
+	// Faccio terminare la stringa dove si trova il ';'
+	if(parsed->filter == FILTER_WHERE) {
+		// Prendo il nome della colonna eliminando prima tutti gli spazi, e fermandomi al primo spazio
+		nextToRead = readTrimWord(nextToRead, &(parsed->filterField), ';');
+		if(parsed->filterField == NULL || !isValidName(parsed->filterField)) {
+			return 0;
+		}
+
+		// Scarto i blank
+		for(; *nextToRead != 0 && isblank(*nextToRead); nextToRead++);
+		if(*nextToRead == 0) return 0;
+		// Prendo l'operatore
+		if(nextToRead[0] == '=' && nextToRead[1] == '=') {
+			nextToRead += 2;
+			parsed->op = OP_EQ;
+		} else if(nextToRead[0] == '>') {
+			nextToRead++;
+			if(nextToRead[1] == '=') {
+				parsed->op = OP_GE;
+				nextToRead++;
+			} else {
+				parsed->op = OP_GT;
+			}
+		} else if(nextToRead[0] == '<') {
+			nextToRead++;
+			if(nextToRead[1] == '=') {
+				parsed->op = OP_LE;
+				nextToRead++;
+			} else {
+				parsed->op = OP_LT;
+			}
+		} else {
+			return 0;
+		}
+
+		// Prendo il valore da confrontare eliminando prima tutti gli spazi, e fermandomi al primo spazio
+		nextToRead = readTrimWord(nextToRead, &(parsed->filterValue), ';');
+		if(parsed->filterValue == NULL || !isValidValue(parsed->filterValue)) {
+			return 0;
+		}
+	} else if(parsed->filter == FILTER_ORDERBY) {
+
+	} else if(parsed->filter == FILTER_GROUPBY) {
+
+	}
+
 	for(char *c = nextToRead; c < end; c++) {
 		if(!isblank(*c)) {
 			return 0;

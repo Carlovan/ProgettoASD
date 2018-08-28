@@ -3,7 +3,7 @@
 
 int main() {
 	query_t parsed = newQuery();
-	bool ok = parseQuery("    SELECT  i, a, b FROM asd ORDER asd ;", &parsed);
+	bool ok = parseQuery("    SELECT  i, a, b FROM asd WHERE asd == 'ciccio' ;", &parsed);
 	if(ok) {
 		printf("%d, %s, %d\nCOLS:\n", parsed.action, parsed.table, parsed.filter);
 		for(query_data_t *i = parsed.data; i->colName != NULL; i++)
