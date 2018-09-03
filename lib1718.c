@@ -836,7 +836,7 @@ int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando
 
 bool executeQuery(char*str) {
 	//dichiarazione variabili
-	int  i,group_by;
+	int *group_by;
 	bool error;
 	query_t *query;
 	table_DB *DB;
