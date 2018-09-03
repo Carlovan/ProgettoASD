@@ -416,59 +416,46 @@ bool parseQuery(char* query, query_t* parsed) {
 
 // Ordina le righe di una tabella in base alla colonna specificata
 bool sortDB(table_DB* DB, char *column) {
-	int id_column;
-	bool typeINT, error;
-
 	// Indice delle colonna
-	id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
+	int id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
 	if (id_column == -1)
 		return false;
 
 	// Scopro il tipo della colonna
-	typeINT = identifyINT(DB->data[1][id_column]);
+	bool typeINT = identifyINT(DB->data[1][id_column]);
 
 	// Ordino per numero o per stringa
-	if (typeINT == true)
-		error = sortDBnum(DB, id_column);
-	else
+	if (typeINT == true) {
+		return sortDBnum(DB, id_column);
+	} else {
 		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row);
-	if (error == false)
-		return false;
-	return true;
+		return true;
+	}
 }
 
 //ordinamento di interi
 bool sortDBnum(table_DB* DB, int id_columns) {
-	//dichiarazioni delle variabili
-	int* vet,i;
-
-	//inizializazione delle variabili
-	i = 0;
-
 	//trasformare la colonna di char in un vettore di interi 
-	vet = (int*)malloc(DB->n_row * sizeof(int));
-	if (vet == NULL)
-		return false;
+	int *vet = (int*)malloc(DB->n_row * sizeof(int));
 
 	//carichiamo i valori nel vettore
-	while (i < DB->n_row) {
+	for(int i = 0; i < DB->n_row; i++) {
 		vet[i] = atoi(DB->data[i][id_columns]);
-		i++;
 	}
 
 	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
 	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);//-1 perché il vettore parte da 0 
 
+	free(vet);
 	return true;
 }
 
 //funzione ausiliare per l'ordinamento di interi
 void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per una colonna di interi una tabella
 {
-	int p;
 	if (low < high){//passo base
 		//la partition restituisce il punto in cui spaccare nuovamente il vettore
-		p = sortDBnumPARTITION(DB, vet, low, high);
+		int p = sortDBnumPARTITION(DB, vet, low, high);
 
 		//richiamo il quicksort su i due sotto vettori
 		sortDBnumQUICKSORT(DB,vet, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
@@ -479,15 +466,10 @@ void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per u
 //funzione ausiliare per l'ordinamento di interi
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition della funzione sortDBnumQUICKSORT
 {
-	//dichiarazione delle variabili
-	int pivot, j, i;
+	int pivot = vet[high];    // pivot
+	int i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
 
-	//inizializzo le variabili
-	pivot = vet[high];    // pivot
-	i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
-
-
-	for (j = low; j <= high - 1; j++)
+	for (int j = low; j <= high - 1; j++)
 	{
 		//guardo se l'elemento che sto guardando è più piccolo del pivot
 		if (vet[j] <= pivot)
@@ -498,19 +480,14 @@ int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition del
 	}
 	i++;
 	sortDBnumSWAP(&vet[i], &vet[high] , &DB->data[i], &DB->data[high]);
-	return (i);
+	return i;
 }
 
 //funzione ausiliare per l'ordinamento di  interi
-void sortDBnumSWAP(int* a, int* b, char***c, char***d)
+void sortDBnumSWAP(int* a, int* b, char*** c, char*** d)
 {
-	//dichiarazione delle variabili
-	int aux_int;
-	char **aux_char;
-
-	//inizializazione
-	aux_int = *a;
-	aux_char = *c;
+	int aux_int = *a;
+	char **aux_char = *c;
 
 	//swap
 	*a = *b;
@@ -521,11 +498,10 @@ void sortDBnumSWAP(int* a, int* b, char***c, char***d)
 
 //ordiamento di stringhe
 void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
-	int p;
 	if (low < high)//passo base
 	{
 		//la partition restituisce il punto in cui spaccare nuovamente il vettore
-		p = sortDBstrPARTITION(DB, id_columns, low, high);
+		int p = sortDBstrPARTITION(DB, id_columns, low, high);
 
 		//richiamo il quicksort su i due sotto vettori
 		sortDBstrQUICKSORT(DB, id_columns, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
@@ -536,16 +512,10 @@ void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
 //funzione ausiliare per l'ordinamento stringhe
 int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partition della funzione sortDBnumQUICKSORT
 {
-	//dichiarazione delle variabili
-	int j, i;
-	char*pivot;
+	char *pivot = DB->data[high][id_columns];// pivot: vado a l'ultima riga e prendo la colonna che devo ordinare
+	int i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
 
-	//inizializzo le variabili
-	pivot = DB->data[high][id_columns];// pivot: vado a l'ultima riga e prendo la colonna che devo ordinare
-	i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
-
-
-	for (j = low; j <= high - 1; j++)
+	for (int j = low; j <= high - 1; j++)
 	{
 		//guardo se l'elemento che sto guardando è più piccolo del pivot
 		if (strcmp(DB->data[j][id_columns],pivot)<=0)//ordinamento per ASCII
@@ -556,60 +526,33 @@ int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partitio
 	}
 	i++;
 	sortDBstrSWAP(&DB->data[i], &DB->data[high]);
-	return (i);
+	return i;
 }
 
 //funzione ausiliare per l'ordinamento di stringhe
 void sortDBstrSWAP(char*** a, char*** b) {
-	char **aux;
-	aux = *a;
+	char **aux = *a;
 	*a = *b;
 	*b = aux;
 }
 
 //trova la colonna da ordinare
 int srcCOLUMNS(char** columns, char* src, int n_columns) {
-	//dichiarazione delle variabili
-	int i;
-	bool trovato;
-
-	//inizializazione delle variabili
-	i = 0;
-	trovato = 0;
-
 	//trovo la parola 
-	while (i < n_columns && !trovato)
+	for (int i = 0; i < n_columns; i++)
 	{
 		if (strcmp(columns[i], src) == 0)
-			trovato = true;
-		else
-			i++;
+			return i;
 	}
-
-	//se la trovo restiuisco l'indice se non la trovo restituisco -1
-	if (trovato)
-		return i;
 	return -1;
 }
 
 //verfifica se la colonna è un intero
 bool identifyINT(char* elem) {
-	//dichiarazione delle variabili
-	bool ISaNUMBER = true;
-	int i = 0;
-
-	//guardo se è un intero o una stringa
-	while (i < strlen(elem) && ISaNUMBER)
-	{
-	if (!isdigit(elem[i]))
-		ISaNUMBER = false;
-	i++;
-	}
-
-	//se è un numero intero allora arriva alla fine della stringa altrimenti si ferma prima
-	if(i==strlen(elem))
-		return true;
-	return false;
+	for(char *c = elem; *c != 0; c++)
+		if(!isdigit(*c))
+			return false;
+	return true;
 }
 
 /*************************************************************************************************
@@ -630,97 +573,69 @@ bool identifyINT(char* elem) {
 //SENZA FILTRI(stampi direttamente la tabella senza fare niente solo con le colonne che sono richieste 
 
 //WHERE
-bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
-	//dichiarazione
-	bool typeINTa, typeINTb,confronto;
-	int id_columns,i,*vet,aux,id_where;
-
-	//inizializazione
-	confronto = false;
-	i = 0;
-	id_where = 0;//dove andrò a sovrascrivere
-	id_columns = srcCOLUMNS(DB->columns, whereCOLUMNS, DB->n_columns);
-	if (id_columns == -1)
+bool selectWHERE(char *whereCOLUMN, char *valore, int operator, table_DB*DB) {
+	int id_column = srcCOLUMNS(DB->columns, whereCOLUMN, DB->n_columns);
+	if (id_column == -1)
 		return false;
-	typeINTa = identifyINT(valore);
-	typeINTb = identifyINT(DB->data[1][id_columns]);
+
+	bool typeINTa = identifyINT(valore);
+	bool typeINTb = identifyINT(DB->data[1][id_column]);
 	if (typeINTa != typeINTb)
 		return false;
 	
-
+	int *vet;
+	int aux;
 	//se sono interi bisogna creare il vettore di interi per velocizzare i confronti
 	if (typeINTb == true) {
 		//trasformare la colonna di char in un vettore di interi 
 		vet = (int*)malloc(DB->n_row * sizeof(int));
-		if (vet == NULL)
-			return false;
 
 		//carichiamo i valori nel vettore
-		while (i < DB->n_row) {
-			vet[i] = atoi(DB->data[i][id_columns]);
-			i++;
+		for (int i = 0; i < DB->n_row; i++) {
+			vet[i] = atoi(DB->data[i][id_column]);
 		}
+		aux = atoi(valore);
 	}
-	aux = atoi(valore);
 
+	int id_next = 0;//dove andrò a inserire la prossima riga
+	bool confronto = false;
 	//mi scorro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
-	while (i < DB->n_row) {
-		//inizio il confronto
+	for (int i = 0; i < DB->n_row; i++) {
 		if (typeINTa == true) {//confronto per numeri interi
-			switch (operatore) {
+			switch (operator) {
 			case OP_EQ://uguale
-				if (vet[i] == aux) {
-					confronto = true;
-				}
+				confronto = vet[i] == aux;
 				break;
 			case OP_GT://maggiore
-				if (vet[i] > aux) {
-					confronto = true;
-				}
+				confronto = vet[i] > aux;
 				break;
 			case OP_GE://maggiore uguale
-				if (vet[i]>= aux) {
-					confronto = true;
-				}
+				confronto = vet[i] >= aux;
 				break;
 			case OP_LT://minore
-				if (vet[i] < aux) {
-					confronto = true;
-				}
+				confronto = vet[i] < aux;
 				break;
 			case OP_LE://minore uguale
-				if (vet[i] <= aux) {
-					confronto = true;
-				}
+				confronto = vet[i] <= aux;
 				break;
 			}
 		}
 		else {//confronto tra stringhe
-			switch (operatore) {
+			switch (operator) {
 			case OP_EQ://uguale
-				if (strcmp(DB->data[i][id_columns],valore) == 0) {
-					confronto = true;
-				}
+				confronto = strcmp(DB->data[i][id_column], valore) == 0;
 				break;
 			case OP_GT://maggiore
-				if (strcmp(DB->data[i][id_columns], valore)> 0) {
-					confronto = true;
-				}
+				confronto = strcmp(DB->data[i][id_column], valore) > 0;
 				break;
 			case OP_GE://maggiore uguale
-				if (strcmp(DB->data[i][id_columns], valore) >= 0) {
-					confronto = true;
-				}
+				confronto = strcmp(DB->data[i][id_column], valore) >= 0;
 				break;
 			case OP_LT://minore
-				if (strcmp(DB->data[i][id_columns],valore) < 0) {
-					confronto = true;
-				}
+				confronto = strcmp(DB->data[i][id_column], valore) < 0;
 				break;
 			case OP_LE://minore uguale
-				if (strcmp(DB->data[i][id_columns],valore) <= 0) {
-					confronto = true;
-				}
+				confronto = strcmp(DB->data[i][id_column], valore) <= 0;
 				break;
 			}
 
@@ -729,83 +644,64 @@ bool selectWHERE(char *whereCOLUMNS, char *valore, int operatore, table_DB*DB) {
 		//sovrascrivo se rispetta il confronto
 		if (confronto == true) {
 			confronto = false;
-			DB->data[id_where] = DB->data[confronto];
-			id_where++;
+			DB->data[id_next] = DB->data[confronto];
+			id_next++;
 		}
 	}
 
 	//aggiorno il numero righe 
-	DB->n_row = id_where;
+	DB->n_row = id_next;
+	free(vet);
 	return true;
 }
 
 //ORDER BY desc vale true quando è desc; desc vale false quando è asc
 bool selectORDERby(char*order_by, int desc, table_DB*DB) {
-	//dichiarazione
-	int last, i;
-	char**aux;//serve per invertire la tabella
-	bool errore;
-
-	//inizializazione
-	i = 0;
-	last = DB->n_row-1;
-	
-	//ordina
-	errore = sortDB(DB, order_by);
-	if (errore == false)
+	if (sortDB(DB, order_by) == false)
 		return false;
 	
 	if (desc == OP_DESC)//inverti tabella
 	{
-		while (last>i)
+		for(int i = 0, last = DB->n_row - 1; last > i; i++, last--)
 		{
-			aux = DB->data[i];
+			char **aux = DB->data[i];
 			DB->data[i] = DB->data[last];
 			DB->data[last] = aux;
-			i++;
-			last--;
 		}
 	}
 	return true;
-
 }
 
 //GROUP BY
-int* selectGROUPby(char*group_by, table_DB*DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
-	//dichiarazione
-	int id_group, i,count_group,id_columns,*vet;
-	bool errore;
+int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
+	int id_next = 0;//che si posiziona dove si può sovrascrivere il prossimo elemento
+	int id_columns = srcCOLUMNS(DB->columns, group_by, DB->n_columns);
+	int *vet;
 
-	//inizializazione
-	i = 0;//indice che scorre tutto il DB
-	id_group = 0;//che si posiziona dove si può sovrascrivere il prossimo elemento
-	count_group = 1;//contatore delle righe che hanno la colonna uguale
-	id_columns = srcCOLUMNS(DB->columns, group_by, DB->n_columns);
 	if (id_columns == -1)
 		return NULL;
 	vet = (int*)malloc(DB->n_row * sizeof(int));
-	if (vet == NULL)
-		return NULL;
 
 	//ordina
-	errore = sortDB(DB, group_by);
-	if (errore == false)
+	if (sortDB(DB, group_by) == false)
 		return false;
 
 	//group
-	while (i<DB->n_row){
-		if (strcmp(DB->data[i][id_columns], DB->data[i + 1][id_columns]) == 0) {
+	int count_group = 1;//contatore delle righe che hanno la colonna uguale
+	char *last = NULL;
+	for (int i = 0; i < DB->n_row; i++) {
+		if(i == 0 || strcmp(DB->data[i][id_columns], last) == 0) {
 			count_group++;//conto le righe che hanno le colonne uguali
-			i++;//vado avanti con le righe fino a quando sono uguali
-		}
-		else{//se sono diversi raggruppo
-			vet[id_group] = count_group;//carico il numero di righe uguali nel vettore
-			DB->data[id_group] = DB->data[i];//carico la riga nella prima disponibile 
-			id_group++;//incremento l'indice in cui andrò a scrivere/sovrascrivere al prossimo raggruppo
+		} else {//se sono diversi raggruppo
+			vet[id_next] = count_group;//carico il numero di righe uguali nel vettore
+			DB->data[id_next] = DB->data[i];//carico la riga nella prima disponibile 
+			id_next++;//incremento l'indice in cui andrò a scrivere/sovrascrivere al prossimo raggruppo
 			count_group = 1;//inizializzo di nuovo il conteggio
 		}
 	}
-	DB->n_row = count_group;//aggiorno il nuovo numero righe
+	vet[id_next] = count_group;//carico il numero di righe uguali nel vettore
+
+	DB->n_row = id_next;//aggiorno il nuovo numero righe
 	return vet;
 }
 
