@@ -417,6 +417,30 @@ bool parseQuery(char* query, query_t* parsed) {
 **                                                                                              **	
 *************************************************************************************************/
 
+
+// Verifica se il valore è un intero
+bool identifyINT(char* elem) {
+	for(char *c = elem; *c != 0; c++)
+		if(!isdigit(*c))
+			return false;
+	return true;
+}
+
+// Converte i valori di una colonna in interi. Restituisce NULL se non ci riesce
+int* columnToInt(const table_DB *table, size_t id_column) {
+	int *ints = (int*)malloc(table->n_row * sizeof(int));
+	for(int i = 0; i < table->n_row; i++) {
+		// Se non è un intero restituisco NULL
+		char *val = table->data[i][id_column];
+		if(!identifyINT(val)) {
+			free(ints);
+			return NULL;
+		}
+		ints[i] = atoi(val);
+	}
+	return ints;
+}
+
 // Ordina le righe di una tabella in base alla colonna specificata
 bool sortDB(table_DB* DB, char *column) {
 	// Indice delle colonna
@@ -437,17 +461,12 @@ bool sortDB(table_DB* DB, char *column) {
 }
 
 //ordinamento di interi
-bool sortDBnum(table_DB* DB, int id_columns) {
+bool sortDBnum(table_DB* DB, int id_column) {
 	//trasformare la colonna di char in un vettore di interi 
-	int *vet = (int*)malloc(DB->n_row * sizeof(int));
-
-	//carichiamo i valori nel vettore
-	for(int i = 0; i < DB->n_row; i++) {
-		vet[i] = atoi(DB->data[i][id_columns]);
-	}
+	int *vet = columnToInt(DB, id_column);
 
 	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
-	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);//-1 perché il vettore parte da 0 
+	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);
 
 	free(vet);
 	return true;
@@ -550,14 +569,6 @@ int srcCOLUMNS(char** columns, char* src, int n_columns) {
 	return -1;
 }
 
-//verfifica se la colonna è un intero
-bool identifyINT(char* elem) {
-	for(char *c = elem; *c != 0; c++)
-		if(!isdigit(*c))
-			return false;
-	return true;
-}
-
 /*************************************************************************************************
 **                                                                                              **
 **              FINE BLOCCO ORDINAMENTO DELLA TABELLA PER UNA DETERMINATA COLONNA               **
@@ -572,11 +583,42 @@ bool identifyINT(char* elem) {
 **                                                                                              **
 *************************************************************************************************/
 
+// Compara due stringhe usando l'operatore di un filtro
+bool compareValuesStr(char* a, char* b, filter_op_t op) {
+	switch (op) {
+		case OP_EQ://uguale
+			return strcmp(a, b) == 0;
+		case OP_GT://maggiore
+			return strcmp(a, b) >  0;
+		case OP_GE://maggiore uguale
+			return strcmp(a, b) >= 0;
+		case OP_LT://minore
+			return strcmp(a, b) <  0;
+		case OP_LE://minore uguale
+			return strcmp(a, b) <= 0;
+	}
+	return false; // Non dovrebbe mai arrivarci
+}
 
-//SENZA FILTRI(stampi direttamente la tabella senza fare niente solo con le colonne che sono richieste 
+// Compara due interi usando l'operatore di un filtro
+bool compareValuesInt(int a, int b, filter_op_t op) {
+	switch (op) {
+		case OP_EQ://uguale
+			return a == b;
+		case OP_GT://maggiore
+			return a >  b;
+		case OP_GE://maggiore uguale
+			return a >= b;
+		case OP_LT://minore
+			return a <  b;
+		case OP_LE://minore uguale
+			return a <= b;
+	}
+	return false; // Non dovrebbe mai arrivarci
+}
 
 //WHERE
-bool selectWHERE(char *whereCOLUMN, char *valore, int operator, table_DB*DB) {
+bool selectWHERE(char *whereCOLUMN, char *valore, filter_op_t operator, table_DB*DB) {
 	int id_column = srcCOLUMNS(DB->columns, whereCOLUMN, DB->n_columns);
 	if (id_column == -1)
 		return false;
@@ -591,12 +633,7 @@ bool selectWHERE(char *whereCOLUMN, char *valore, int operator, table_DB*DB) {
 	//se sono interi bisogna creare il vettore di interi per velocizzare i confronti
 	if (typeINTb == true) {
 		//trasformare la colonna di char in un vettore di interi 
-		vet = (int*)malloc(DB->n_row * sizeof(int));
-
-		//carichiamo i valori nel vettore
-		for (int i = 0; i < DB->n_row; i++) {
-			vet[i] = atoi(DB->data[i][id_column]);
-		}
+		vet = columnToInt(DB, id_column);
 		aux = atoi(valore);
 	}
 
@@ -604,44 +641,10 @@ bool selectWHERE(char *whereCOLUMN, char *valore, int operator, table_DB*DB) {
 	bool confronto = false;
 	//mi scorro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
 	for (int i = 0; i < DB->n_row; i++) {
-		if (typeINTa == true) {//confronto per numeri interi
-			switch (operator) {
-			case OP_EQ://uguale
-				confronto = vet[i] == aux;
-				break;
-			case OP_GT://maggiore
-				confronto = vet[i] > aux;
-				break;
-			case OP_GE://maggiore uguale
-				confronto = vet[i] >= aux;
-				break;
-			case OP_LT://minore
-				confronto = vet[i] < aux;
-				break;
-			case OP_LE://minore uguale
-				confronto = vet[i] <= aux;
-				break;
-			}
-		}
-		else {//confronto tra stringhe
-			switch (operator) {
-			case OP_EQ://uguale
-				confronto = strcmp(DB->data[i][id_column], valore) == 0;
-				break;
-			case OP_GT://maggiore
-				confronto = strcmp(DB->data[i][id_column], valore) > 0;
-				break;
-			case OP_GE://maggiore uguale
-				confronto = strcmp(DB->data[i][id_column], valore) >= 0;
-				break;
-			case OP_LT://minore
-				confronto = strcmp(DB->data[i][id_column], valore) < 0;
-				break;
-			case OP_LE://minore uguale
-				confronto = strcmp(DB->data[i][id_column], valore) <= 0;
-				break;
-			}
-
+		if (typeINTa == true) {
+			confronto = compareValuesInt(vet[i], aux, operator);
+		} else {
+			confronto = compareValuesStr(DB->data[i][id_column], valore, operator);
 		}
 		
 		//sovrascrivo se rispetta il confronto
