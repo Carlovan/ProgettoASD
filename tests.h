@@ -45,7 +45,7 @@ void testParsing() {
 			printf("MALE\n");
 		}
 		freeQuery(&parsed);
-		printf("Query: ");
+		printf(">> Query: ");
 		scanf("%[^\n]", queryString);
 	}
 }

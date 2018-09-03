@@ -255,10 +255,13 @@ bool parseSelect(char *query, query_t* parsed) {
 	// Splitto la lista di colonne e controllo che siano nomi validi
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
-	for(size_t i = 0; i < colCount; i++) {
-		if(!isValidName(colNames[i])) {
-			freeStrings(&colNames, colCount);
-			return 0;
+	// Se è presente solo la colonna * non controllo i nomi
+	if(!(colCount == 1 && strcmp(colNames[0], "*") == 0)) {
+		for(size_t i = 0; i < colCount; i++) {
+			if(!isValidName(colNames[i])) {
+				freeStrings(&colNames, colCount);
+				return 0;
+			}
 		}
 	}
 
