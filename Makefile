@@ -9,6 +9,9 @@ run: build
 check: build
 	valgrind --tool=memcheck --track-origins=yes --leak-check=yes ./main
 
+clean:
+	rm main.o lib1718.o main
+
 main: main.o lib1718.o
 	$(CC) -o $@ $^
 
