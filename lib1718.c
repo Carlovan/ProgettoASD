@@ -414,19 +414,6 @@ bool parseQuery(char* query, query_t* parsed) {
 **                                                                                              **	
 *************************************************************************************************/
 
-//dichiarazione di tutte le funzioni per eliminare i warning
-bool sortDB(table_DB* DB, char *column);
-bool sortDBnum(table_DB* DB, int id_columns);
-void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);
-int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);
-void sortDBnumSWAP(int* a, int* b, char***c, char***d);
-void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high);
-int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high);
-void sortDBstrSWAP(char*** a, char*** b);
-int srcCOLUMNS(char** columns, char* src, int n_columns);
-bool identifyINT(char* elem);
-
-
 // Ordina le righe di una tabella in base alla colonna specificata
 bool sortDB(table_DB* DB, char *column) {
 	int id_column;

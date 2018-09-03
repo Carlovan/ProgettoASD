@@ -87,6 +87,8 @@ int srcCOLUMNS(char**columns, char* src,int n_columns);//ritorna l'indice della 
 bool identifyINT(char* elem);//ritorna false se elem è stringa; ritorna true se elem è un numero
 void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high);//ordina per una colonna di interi una tabella
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high);//partition della funzione sortDBnumQUICKSORT
+void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high);//ordiamento di stringhe
+int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high);//partition della funzione sortDBnumQUICKSORT
 void sortDBnumSWAP(int* a, int* b,char***c,char***d);
 void sortDBstrSWAP(char***a, char***b);
 
