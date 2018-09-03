@@ -45,7 +45,7 @@ typedef struct {
 
 	// Specifici per SELECT
 	filter_t filter; // NONE, WHERE, GROUP, ORDER
-	filter_op_t op; // Operatore per WHERE, GROUP
+	filter_op_t op; // Operatore per WHERE, ORDER
 	char *filterField; // Campo su cui applicare il filtro
 	char *filterValue; // Valore con cui confrontare il campo
 } query_t;

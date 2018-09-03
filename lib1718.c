@@ -116,7 +116,7 @@ char* readTrimWord(char* str, char** dest, char terminator) {
 	for(; *str != terminator && isblank(*str); str++);
 	if(*str == terminator) return str;
 	char *c;
-	for(c = str; *c != terminator && !isblank(*c); c++);
+	for(c = str; *c != 0 && *c != terminator && !isblank(*c); c++);
 	size_t len = c - str;
 	*dest = (char*)malloc(len + 1);
 	strncpy(*dest, str, len);
@@ -320,14 +320,16 @@ bool parseSelect(char *query, query_t* parsed) {
 		return 0;
 	}
 
-	// Faccio terminare la stringa dove si trova il ';'
-	if(parsed->filter == FILTER_WHERE) {
+	// Tutti i filtri hanno per prima cosa il campo
+	if(parsed->filter != FILTER_NONE) {
 		// Prendo il nome della colonna eliminando prima tutti gli spazi, e fermandomi al primo spazio
 		nextToRead = readTrimWord(nextToRead, &(parsed->filterField), ';');
 		if(parsed->filterField == NULL || !isValidName(parsed->filterField)) {
 			return 0;
 		}
+	}
 
+	if(parsed->filter == FILTER_WHERE) {
 		// Scarto i blank
 		for(; *nextToRead != 0 && isblank(*nextToRead); nextToRead++);
 		if(*nextToRead == 0) return 0;
@@ -361,10 +363,20 @@ bool parseSelect(char *query, query_t* parsed) {
 			return 0;
 		}
 	} else if(parsed->filter == FILTER_ORDERBY) {
-
-	} else if(parsed->filter == FILTER_GROUPBY) {
-
-	}
+		// Prendo l'indicatore di ordinamento (ASC o DESC)
+		char *tmp;
+		nextToRead = readTrimWord(nextToRead, &tmp, ';');
+		if(strcmp(tmp, "ASC") == 0) {
+			parsed->op = OP_ASC;
+			free(tmp);
+		} else if(strcmp(tmp, "DESC") == 0) {
+			parsed->op = OP_DESC;
+			free(tmp);
+		} else {
+			free(tmp);
+			return 0;
+		}
+	} else if(parsed->filter == FILTER_GROUPBY); // Do nothing (here just to readability)
 
 	for(char *c = nextToRead; c < end; c++) {
 		if(!isblank(*c)) {
