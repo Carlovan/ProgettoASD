@@ -703,11 +703,12 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 			DB->data[id_next] = DB->data[i];//carico la riga nella prima disponibile 
 			id_next++;//incremento l'indice in cui andrò a scrivere/sovrascrivere al prossimo raggruppo
 			count_group = 1;//inizializzo di nuovo il conteggio
+			last = DB->data[i][id_columns];//carico la nuova stringa da confrontare 
 		}
 	}
 	vet[id_next] = count_group;//carico il numero di righe uguali nel vettore
 
-	DB->n_row = id_next;//aggiorno il nuovo numero righe
+	DB->n_row = ++id_next;//aggiorno il nuovo numero righe
 	return vet;
 }
 
