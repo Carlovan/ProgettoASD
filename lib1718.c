@@ -32,6 +32,15 @@ void freeQuery(query_t *q) {
 	}
 }
 
+// Libera tutta la memoria allocata per un table_DB
+void freeTable(table_DB t) {
+	free(t.columns);
+	for(size_t i = 0; i < t.n_row; i++) {
+		freeStrings(&t.data[i], t.n_columns);
+	}
+	free(t.data);
+}
+
 // Restituisce un nuovo oggetto query_t
 query_t newQuery() {
 	query_t q;

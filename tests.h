@@ -65,20 +65,17 @@ table_DB createTestTable() {
 	for(size_t i = 0; i < t.n_row; i++) {
 		t.data[i] = (char**)malloc(t.n_columns * sizeof(char*));
 	}
-	t.data[0][0] = "asd00";
-	t.data[0][1] = "asd01";
-	t.data[1][0] = "asd10";
-	t.data[1][1] = "asd11";
+	t.data[0][0] = (char*)malloc(6);
+	t.data[0][1] = (char*)malloc(6);
+	t.data[1][0] = (char*)malloc(6);
+	t.data[1][1] = (char*)malloc(6);
+
+	strcpy(t.data[0][0], "asd00");
+	strcpy(t.data[0][1], "asd01");
+	strcpy(t.data[1][0], "asd10");
+	strcpy(t.data[1][1], "asd11");
 
 	return t;
-}
-
-void freeTable(table_DB t) {
-	free(t.columns);
-	for(size_t i = 0; i < t.n_row; i++) {
-		free(t.data[i]);
-	}
-	free(t.data);
 }
 
 void testTableString() {

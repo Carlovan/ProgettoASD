@@ -12,8 +12,8 @@ check: build
 clean:
 	rm main.o lib1718.o main
 
-main: main.o lib1718.o tests.h
+main: main.o lib1718.o
 	$(CC) -o $@ $^
 
-%.o: %.c lib1718.h Makefile
+%.o: %.c lib1718.h Makefile tests.h
 	$(CC) -c -o $@ $< $(CFLAGS)
