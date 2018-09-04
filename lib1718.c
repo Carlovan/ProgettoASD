@@ -426,6 +426,17 @@ bool identifyINT(char* elem) {
 	return true;
 }
 
+// Trova la colonna da ordinare
+int srcCOLUMNS(char** columns, char* src, int n_columns) {
+	//trovo la parola
+	for (int i = 0; i < n_columns; i++)
+	{
+		if (strcmp(columns[i], src) == 0)
+			return i;
+	}
+	return -1;
+}
+
 // Converte i valori di una colonna in interi. Restituisce NULL se non ci riesce
 int* columnToInt(const table_DB *table, size_t id_column) {
 	int *ints = (int*)malloc(table->n_row * sizeof(int));
@@ -441,48 +452,17 @@ int* columnToInt(const table_DB *table, size_t id_column) {
 	return ints;
 }
 
-// Ordina le righe di una tabella in base alla colonna specificata
-bool sortDB(table_DB* DB, char *column) {
-	// Indice delle colonna
-	int id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
-	if (id_column == -1)
-		return false;
-
-	// Scopro il tipo della colonna
-	bool typeINT = identifyINT(DB->data[1][id_column]);
-
-	// Ordino per numero o per stringa
-	if (typeINT == true) {
-		return sortDBnum(DB, id_column);
-	} else {
-		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row);
-		return true;
-	}
-}
-
-//ordinamento di interi
-bool sortDBnum(table_DB* DB, int id_column) {
-	//trasformare la colonna di char in un vettore di interi 
-	int *vet = columnToInt(DB, id_column);
-
-	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
-	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);
-
-	free(vet);
-	return true;
-}
-
-//funzione ausiliare per l'ordinamento di interi
-void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per una colonna di interi una tabella
+//funzione ausiliare per l'ordinamento di  interi
+void sortDBnumSWAP(int* a, int* b, char*** c, char*** d)
 {
-	if (low < high){//passo base
-		//la partition restituisce il punto in cui spaccare nuovamente il vettore
-		int p = sortDBnumPARTITION(DB, vet, low, high);
+	int aux_int = *a;
+	char **aux_char = *c;
 
-		//richiamo il quicksort su i due sotto vettori
-		sortDBnumQUICKSORT(DB,vet, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
-		sortDBnumQUICKSORT(DB,vet, p + 1, high);
-	}
+	//swap
+	*a = *b;
+	*b = aux_int;
+	*c = *d;
+	*d = aux_char;
 }
 
 //funzione ausiliare per l'ordinamento di interi
@@ -505,30 +485,36 @@ int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition del
 	return i;
 }
 
-//funzione ausiliare per l'ordinamento di  interi
-void sortDBnumSWAP(int* a, int* b, char*** c, char*** d)
+//funzione ausiliare per l'ordinamento di interi
+void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per una colonna di interi una tabella
 {
-	int aux_int = *a;
-	char **aux_char = *c;
-
-	//swap
-	*a = *b;
-	*b = aux_int;
-	*c = *d;
-	*d = aux_char;
-}
-
-//ordiamento di stringhe
-void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
-	if (low < high)//passo base
-	{
+	if (low < high){//passo base
 		//la partition restituisce il punto in cui spaccare nuovamente il vettore
-		int p = sortDBstrPARTITION(DB, id_columns, low, high);
+		int p = sortDBnumPARTITION(DB, vet, low, high);
 
 		//richiamo il quicksort su i due sotto vettori
-		sortDBstrQUICKSORT(DB, id_columns, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
-		sortDBstrQUICKSORT(DB, id_columns, p + 1, high);
+		sortDBnumQUICKSORT(DB,vet, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
+		sortDBnumQUICKSORT(DB,vet, p + 1, high);
 	}
+}
+
+//ordinamento di interi
+bool sortDBnum(table_DB* DB, int id_column) {
+	//trasformare la colonna di char in un vettore di interi
+	int *vet = columnToInt(DB, id_column);
+
+	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
+	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);
+
+	free(vet);
+	return true;
+}
+
+//funzione ausiliare per l'ordinamento di stringhe
+void sortDBstrSWAP(char*** a, char*** b) {
+	char **aux = *a;
+	*a = *b;
+	*b = aux;
 }
 
 //funzione ausiliare per l'ordinamento stringhe
@@ -551,22 +537,36 @@ int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partitio
 	return i;
 }
 
-//funzione ausiliare per l'ordinamento di stringhe
-void sortDBstrSWAP(char*** a, char*** b) {
-	char **aux = *a;
-	*a = *b;
-	*b = aux;
+//ordiamento di stringhe
+void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
+	if (low < high)//passo base
+	{
+		//la partition restituisce il punto in cui spaccare nuovamente il vettore
+		int p = sortDBstrPARTITION(DB, id_columns, low, high);
+
+		//richiamo il quicksort su i due sotto vettori
+		sortDBstrQUICKSORT(DB, id_columns, low, p - 1);//il pivot è già al suo posto quindi non lo considero più
+		sortDBstrQUICKSORT(DB, id_columns, p + 1, high);
+	}
 }
 
-//trova la colonna da ordinare
-int srcCOLUMNS(char** columns, char* src, int n_columns) {
-	//trovo la parola 
-	for (int i = 0; i < n_columns; i++)
-	{
-		if (strcmp(columns[i], src) == 0)
-			return i;
+// Ordina le righe di una tabella in base alla colonna specificata
+bool sortDB(table_DB* DB, char *column) {
+	// Indice delle colonna
+	int id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
+	if (id_column == -1)
+		return false;
+
+	// Scopro il tipo della colonna
+	bool typeINT = identifyINT(DB->data[1][id_column]);
+
+	// Ordino per numero o per stringa
+	if (typeINT == true) {
+		return sortDBnum(DB, id_column);
+	} else {
+		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row);
+		return true;
 	}
-	return -1;
 }
 
 /*************************************************************************************************
