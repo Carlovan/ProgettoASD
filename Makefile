@@ -12,7 +12,7 @@ check: build
 clean:
 	rm main.o lib1718.o main
 
-main: main.o lib1718.o
+main: main.o lib1718.o tests.h
 	$(CC) -o $@ $^
 
 %.o: %.c lib1718.h Makefile

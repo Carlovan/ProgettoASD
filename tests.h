@@ -1,5 +1,6 @@
 #include "lib1718.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void printQuery(query_t q) {
@@ -48,4 +49,34 @@ void testParsing() {
 		printf(">> Query: ");
 		scanf("%[^\n]", queryString);
 	}
+}
+
+void testTableString() {
+	table_DB t;
+	t.table_name = "nome_tabella";
+
+	t.n_columns = 2;
+	t.columns = (char**)malloc(t.n_columns * sizeof(char*));
+	t.columns[0] = "a";
+	t.columns[1] = "b";
+
+	t.n_row = 2;
+	t.data = (char***)malloc(t.n_row * sizeof(char**));
+	for(size_t i = 0; i < t.n_row; i++) {
+		t.data[i] = (char**)malloc(t.n_columns * sizeof(char*));
+	}
+	t.data[0][0] = "asd00";
+	t.data[0][1] = "asd01";
+	t.data[1][0] = "asd10";
+	t.data[1][1] = "asd11";
+
+
+	char *tableStr = tableString(&t);
+	printf("Table:\n%s\n", tableStr);
+	free(t.columns);
+	for(size_t i = 0; i < t.n_row; i++) {
+		free(t.data[i]);
+	}
+	free(t.data);
+	free(tableStr);
 }

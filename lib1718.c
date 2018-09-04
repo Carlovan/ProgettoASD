@@ -720,6 +720,94 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 
 /*************************************************************************************************
 **                                                                                              **
+**                                   BLOCCO GESTIONE FILESYSTEM                                 **
+**                                                                                              **
+*************************************************************************************************/
+
+char* tableHeaderString(table_DB* table) {
+	// "TABLE name COLUMNS "
+	size_t totalSize = 6 + strlen(table->table_name) + 9;
+	size_t columnsStart = totalSize; // Indice della stringa dove inizia la lista di colonne
+	for(size_t i = 0; i < table->n_columns; i++) {
+		totalSize += strlen(table->columns[i]) + 1;
+	}
+	totalSize++; // Carattere terminatore
+	char *header = (char*)malloc(totalSize);
+
+	sprintf(header, "TABLE %s COLUMNS ", table->table_name);
+	char *nextToWrite = header + columnsStart;
+	for(size_t i = 0; i < table->n_columns; i++) {
+		strcpy(nextToWrite, table->columns[i]);
+		nextToWrite += strlen(table->columns[i]);
+		if(i < table->n_columns - 1) {
+			*nextToWrite = ',';
+		} else {
+			*nextToWrite = ';';
+		}
+		nextToWrite++;
+	}
+	*nextToWrite = 0;
+	return header;
+}
+
+char* tableRowString(table_DB* table, size_t id_row) {
+	// "ROW "
+	size_t totalSize = 4;
+	size_t valuesStart = totalSize; // Indice della stringa dove inizia la lista di valori
+	for(size_t i = 0; i < table->n_columns; i++) {
+		totalSize += strlen(table->data[id_row][i]) + 1;
+	}
+	totalSize++; // Carattere terminatore
+	char *row = (char*)malloc(totalSize);
+
+	sprintf(row, "ROW ");
+	char *nextToWrite = row + valuesStart;
+	for(size_t i = 0; i < table->n_columns; i++) {
+		strcpy(nextToWrite, table->data[id_row][i]);
+		nextToWrite += strlen(table->data[id_row][i]);
+		if(i < table->n_columns - 1) {
+			*nextToWrite = ',';
+		} else {
+			*nextToWrite = ';';
+		}
+		nextToWrite++;
+	}
+	*nextToWrite = 0;
+	return row;
+}
+
+char* tableString(table_DB* table) {
+	char* header = tableHeaderString(table);
+	char** rows = (char**)malloc(table->n_row * sizeof(char*));
+	size_t totalSize = strlen(header) + 1;
+	for(size_t i = 0; i < table->n_row; i++) {
+		rows[i] = tableRowString(table, i);
+		totalSize += strlen(rows[i]) + 1;
+	}
+	totalSize++; // Carattere terminatore
+
+	char* tableStr = (char*)malloc(totalSize);
+	strcpy(tableStr, header);
+	strcat(tableStr, "\n");
+	for(size_t i = 0; i < table->n_row; i++) {
+		strcat(tableStr, rows[i]);
+		strcat(tableStr, "\n");
+	}
+	tableStr[totalSize-1] = 0;
+
+	free(header);
+	freeStrings(&rows, table->n_row);
+	return tableStr;
+}
+
+/*************************************************************************************************
+**                                                                                              **
+**                                 FINE BLOCCO GESTIONE FILESYSTEM                              **
+**                                                                                              **
+*************************************************************************************************/
+
+/*************************************************************************************************
+**                                                                                              **
 **                                        MAIN: EXECUTEQUERY                                    **
 **                                                                                              **
 *************************************************************************************************/
