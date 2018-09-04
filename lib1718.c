@@ -800,6 +800,19 @@ char* tableString(table_DB* table) {
 	return tableStr;
 }
 
+void saveTable(table_DB* table) {
+	char fileName[strlen(table->table_name) + 5]; // 5 = .txt\0
+	strcpy(fileName, table->table_name);
+	strcat(fileName, ".txt");
+	FILE *out = fopen(fileName, "w");
+
+	char* tableStr = tableString(table);
+	fputs(tableStr, out);
+
+	free(tableStr);
+	fclose(out);
+}
+
 /*************************************************************************************************
 **                                                                                              **
 **                                 FINE BLOCCO GESTIONE FILESYSTEM                              **

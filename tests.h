@@ -51,7 +51,7 @@ void testParsing() {
 	}
 }
 
-void testTableString() {
+table_DB createTestTable() {
 	table_DB t;
 	t.table_name = "nome_tabella";
 
@@ -70,13 +70,31 @@ void testTableString() {
 	t.data[1][0] = "asd10";
 	t.data[1][1] = "asd11";
 
+	return t;
+}
 
-	char *tableStr = tableString(&t);
-	printf("Table:\n%s\n", tableStr);
+void freeTable(table_DB t) {
 	free(t.columns);
 	for(size_t i = 0; i < t.n_row; i++) {
 		free(t.data[i]);
 	}
 	free(t.data);
+}
+
+void testTableString() {
+	table_DB t = createTestTable();
+
+	char *tableStr = tableString(&t);
+	printf("Table:\n%s\n", tableStr);
+
+	freeTable(t);
 	free(tableStr);
+}
+
+void testSaveTable() {
+	table_DB t = createTestTable();
+
+	saveTable(&t);
+
+	freeTable(t);
 }

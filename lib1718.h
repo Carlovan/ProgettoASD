@@ -75,5 +75,6 @@ query_t newQuery();
 query_data_t newQueryData();
 
 char* tableString(table_DB* table);
+void saveTable(table_DB* table);
 
 #endif //LIB1718_H
