@@ -7,7 +7,7 @@ run: build
 	./main
 
 check: build
-	valgrind --tool=memcheck --track-origins=yes --leak-check=yes ./main
+	valgrind --tool=memcheck --track-origins=yes --leak-check=full --show-leak-kinds=all ./main
 
 clean:
 	rm main.o lib1718.o main

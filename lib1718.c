@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
+#include <assert.h>
 
 
 // Chiama free su una lista di stringhe
@@ -33,12 +33,21 @@ void freeQuery(query_t *q) {
 }
 
 // Libera tutta la memoria allocata per un table_DB
-void freeTable(table_DB t) {
-	free(t.columns);
-	for(size_t i = 0; i < t.n_row; i++) {
-		freeStrings(&t.data[i], t.n_columns);
+void freeTable(table_DB* t) {
+	if(t->table_name != NULL) {
+		free(t->table_name);
 	}
-	free(t.data);
+
+	if(t->columns != NULL) {
+		freeStrings(&t->columns, t->n_columns);
+	}
+
+	if(t->data != NULL) {
+		for(size_t i = 0; i < t->n_row; i++) {
+			freeStrings(&t->data[i], t->n_columns);
+		}
+		free(t->data);
+	}
 }
 
 // Restituisce un nuovo oggetto query_t
@@ -60,6 +69,16 @@ query_data_t newQueryData() {
 	q.colName = NULL;
 	q.value = NULL;
 	return q;
+}
+
+table_DB newTable() {
+	table_DB t;
+	t.table_name = NULL;
+	t.columns = NULL;
+	t.data = NULL;
+	t.n_columns = 0;
+	t.n_row = 0;
+	return t;
 }
 
 /* Divide la stringa s usando delim come delimitatore.
@@ -93,6 +112,7 @@ size_t splitAndTrim(char* s, const char delim, char*** splits) {
 		memcpy(*output, tb, len);
 		(*output)[len] = 0;
 		output++;
+		if(*c == 0) break;
 	}
 	// In questo caso l'ultimo output non è inizializzato
 	if(s[strlen(s)-1] == delim) {
@@ -733,6 +753,13 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 **                                                                                              **
 *************************************************************************************************/
 
+char* tableFilename(char* tableName) {
+	char* fileName = (char*)malloc(strlen(tableName) + 5); // 5 = .txt\0
+	strcpy(fileName, tableName);
+	strcat(fileName, ".txt");
+	return fileName;
+}
+
 char* tableHeaderString(table_DB* table) {
 	// "TABLE name COLUMNS "
 	size_t totalSize = 6 + strlen(table->table_name) + 9;
@@ -810,16 +837,57 @@ char* tableString(table_DB* table) {
 }
 
 void saveTable(table_DB* table) {
-	char fileName[strlen(table->table_name) + 5]; // 5 = .txt\0
-	strcpy(fileName, table->table_name);
-	strcat(fileName, ".txt");
+	char* fileName = tableFilename(table->table_name);
 	FILE *out = fopen(fileName, "w");
 
 	char* tableStr = tableString(table);
 	fputs(tableStr, out);
 
+	free(fileName);
 	free(tableStr);
 	fclose(out);
+}
+
+bool loadTable(char* name, table_DB* table) {
+	char* fileName = tableFilename(name);
+	FILE* in = fopen(fileName, "r");
+	if(in == NULL) {
+		free(fileName);
+		return false;
+	}
+
+	char* nextToRead = NULL;
+	char* tmpPtr;
+	const size_t bufSize = 1024;
+	char tmpBuf[bufSize];
+	fgets(tmpBuf, bufSize, in);
+	long rowsStart = ftell(in);
+
+	nextToRead = strchr(tmpBuf, ' ') + 1;
+	tmpPtr = strchr(nextToRead, ' ');
+	table->table_name = (char*)malloc((tmpPtr - nextToRead) + 1);
+	strncpy(table->table_name, nextToRead, (tmpPtr - nextToRead));
+	table->table_name[(tmpPtr - nextToRead)] = 0;
+
+	nextToRead = strchr(tmpPtr + 1, ' ') + 1;
+	*(strchr(nextToRead, ';')) = 0;
+	table->n_columns = splitAndTrim(nextToRead, ',', &table->columns);
+
+	//Contiamo le righe
+	for(char c; (c = fgetc(in)) != EOF; table->n_row += (c == '\n'));
+	table->data = (char***)malloc(table->n_row * sizeof(char**));
+
+	fseek(in, rowsStart, SEEK_SET);
+	for(int i = 0; i < table->n_row; i++) {
+		fgets(tmpBuf, bufSize, in);
+		nextToRead = strchr(tmpBuf, ' ') + 1;
+		*(strchr(nextToRead, ';')) = 0;
+		splitAndTrim(nextToRead, ',', &(table->data[i]));
+	}
+
+	free(fileName);
+	fclose(in);
+	return true;
 }
 
 /*************************************************************************************************
@@ -835,58 +903,48 @@ void saveTable(table_DB* table) {
 *************************************************************************************************/
 
 bool executeQuery(char*str) {
-	//dichiarazione variabili
-	int *group_by;
-	bool error;
-	query_t *query;
-	table_DB *DB;
+	// int ok = true;
 
-	//inizializazione delle variabili
-	query = (query_t*)malloc(sizeof(query_t));	
-	if (query == NULL) 
-		return false;
-	DB = (table_DB*)malloc(sizeof(table_DB));
-	if (DB == NULL)
-		return false;
-	//error = parsed(str, query);//costruisce la struttura query_t 
-	if (!error) 
-		return false;
-	//error = buildTable(query->table,DB);//costruisce la struttura tabella partendo dal file
-	
-	switch (query->action){
-		case ACTION_CREATE:
-			//funzione action create
-			//funzione stampa create 
-			break;
-		case ACTION_INSERT:
-			//funzione action insert
-			//funzione stampa insert
-			break;
-		case ACTION_SELECT:
-			switch (query->filter){
-				case FILTER_NONE:
-					//action/stampa selection none
-					break;
-				case FILTER_WHERE:
-					error = selectWHERE(query->filterField, query->filterValue,query->op, DB);
-					break;
-				case FILTER_ORDERBY:
-					error=selectORDERby(query->filterField, query->op, DB);
-					if (!error)
-						return false;
-					break;
-				case FILTER_GROUPBY:
-					group_by = selectGROUPby(query->filterField, DB);
-					if (group_by == NULL)
-						return false;
-					//stampa speciale<------ATTENZIONE------->
-					//stampaGroupBy(int *group_by,table_DB *DB,int id_collumns);//tipo di prototipo di funzione per la stampa del groupBy, la funzione group by restituisce un vettore di interi l'indice i-esimo del vettore corrisponde a quante volte si ripete la riga iesima del DB
-					break;
-				if (query->filter != FILTER_GROUPBY)
-						//stampa selection; dato che io nelle selectiono vado  a modificare il DB basta stampare il DB per stampare il risultato della selection
-					;
-			}
-			break;
-	}
-	return true;
+	// query_t query = newQuery();
+	// if(!parseQuery(str, &query)) {
+	// 	ok = false;
+	// }
+
+	// table_DB table = newTable();
+	// if(ok && !loadTable(query.table, &table)) {
+	// 	ok = false;
+	// }
+
+	// if(ok && query.action == ACTION_SELECT) {
+	// 	table_DB result = newTable();
+	// 	if(!executeSelect(query, table, &result)) {
+	// 		ok = false;
+	// 	}
+	// 	if(ok) {
+	// 		freeTable(&table);
+	// 		table = result;
+	// 		if(query.filter == FILTER_WHERE) {
+	// 			if(!applyWhere(query, table, &result)) {
+	// 				ok = false;
+	// 			}
+	// 		} else if(query.filter == FILTER_GROUPBY) {
+	// 			if(!applyGroupBy(query, table, &result)) {
+	// 				ok = false;
+	// 			}
+	// 		} else if(query.filter == FILTER_ORDERBY) {
+	// 			if(!applyOrderBy(query, table, &result)) {
+	// 				ok = false;
+	// 			}
+	// 		}
+
+	// 		if(ok) {
+	// 			char* tstr = tableString(&result);
+	// 			puts(tstr);
+	// 			free(tstr);
+	// 		}
+	// 	}
+	// }
+
+	// freeQuery(&query);
+	// freeTable(&table);
 }

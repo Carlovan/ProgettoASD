@@ -52,13 +52,16 @@ void testParsing() {
 }
 
 table_DB createTestTable() {
-	table_DB t;
-	t.table_name = "nome_tabella";
+	table_DB t = newTable();
+	t.table_name = (char*)malloc(13);
+	strcpy(t.table_name, "nome_tabella");
 
 	t.n_columns = 2;
 	t.columns = (char**)malloc(t.n_columns * sizeof(char*));
-	t.columns[0] = "a";
-	t.columns[1] = "b";
+	t.columns[0] = (char*)malloc(2);
+	strcpy(t.columns[0], "a");
+	t.columns[1] = (char*)malloc(2);
+	strcpy(t.columns[1], "b");
 
 	t.n_row = 2;
 	t.data = (char***)malloc(t.n_row * sizeof(char**));
@@ -84,7 +87,7 @@ void testTableString() {
 	char *tableStr = tableString(&t);
 	printf("Table:\n%s\n", tableStr);
 
-	freeTable(t);
+	freeTable(&t);
 	free(tableStr);
 }
 
@@ -93,5 +96,27 @@ void testSaveTable() {
 
 	saveTable(&t);
 
-	freeTable(t);
+	freeTable(&t);
+}
+
+void testLoadTable() {
+	table_DB t = newTable();
+	char name[] = "nome_tabella";
+
+	loadTable(name, &t);
+	printf("Table: %s\n", t.table_name);
+	printf("Cols (%d):\n", t.n_columns);
+	for(size_t i = 0; i < t.n_columns; i++) {
+		printf("\t%s\n", t.columns[i]);
+	}
+	printf("Rows (%d):\n", t.n_row);
+	for(size_t i = 0; i < t.n_row; i++) {
+		putchar('\t');
+		for(size_t j = 0; j < t.n_columns; j++) {
+			printf("'%s' ", t.data[i][j]);
+		}
+		putchar('\n');
+	}
+
+	freeTable(&t);
 }

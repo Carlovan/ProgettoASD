@@ -73,9 +73,11 @@ bool parseQuery(char* query, query_t* parsed);
 void freeQuery(query_t*);
 query_t newQuery();
 query_data_t newQueryData();
-void freeTable(table_DB t);
+table_DB newTable();
+void freeTable(table_DB* t);
 
 char* tableString(table_DB* table);
 void saveTable(table_DB* table);
+bool loadTable(char* name, table_DB* table);
 
 #endif //LIB1718_H
