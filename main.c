@@ -5,5 +5,5 @@ int main() {
 	// testTableString();
 	// testSaveTable();
 	// testLoadTable();
-	executeQuery("SELECT * FROM nome_tabella;");
+	executeQuery("CREATE TABLE persona ( nome, cognome, eta);");
 }

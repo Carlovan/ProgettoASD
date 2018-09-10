@@ -801,6 +801,23 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 	return vet;
 }
 
+bool executeCreate(query_t query, table_DB* result) {
+	// Copio il nome della tabella
+	result->table_name = (char*)malloc(strlen(query.table) + 1);
+	strcpy(result->table_name, query.table);
+
+	// Copio le colonne
+	for(query_data_t* d = query.data; d->colName != NULL; d++, result->n_columns++);
+	if(result->n_columns == 0)
+		return false;
+	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
+	for(int i = 0; i < result->n_columns; i++) {
+		result->columns[i] = (char*)malloc(strlen(query.data[i].colName) + 1);
+		strcpy(result->columns[i], query.data[i].colName);
+	}
+	return true;
+}
+
 /*************************************************************************************************
 **                                                                                              **
 **                                      FINE BLOCCO SELECTION                                   **
@@ -1060,25 +1077,29 @@ bool executeQuery(char*str) {
 		ok = false;
 	}
 
-	table_DB table = newTable();
-	if(ok && !loadTable(query.table, &table)) {
-		ok = false;
-	}
-
 	if(ok && query.action == ACTION_SELECT) {
-		table_DB result = newTable();
-		if(!executeSelect(query, table, &result)) {
+		table_DB sourceTable = newTable();
+		if(ok && !loadTable(query.table, &sourceTable)) {
 			ok = false;
 		}
-		if(ok) {
+		table_DB result = newTable();
+		if(ok && executeSelect(query, sourceTable, &result)) {
 			saveSelect(query, result);
 		}
 
+		freeTable(&sourceTable);
+		freeTable(&result);
+	} else if(ok && query.action == ACTION_CREATE) {
+		table_DB result = newTable();
+		if(executeCreate(query, &result)) {
+			saveTable(result);
+		} else {
+			ok = false;
+		}
 		freeTable(&result);
 	}
 
 	freeQuery(&query);
-	freeTable(&table);
 
-	return true;
+	return ok;
 }
