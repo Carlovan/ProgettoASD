@@ -5,5 +5,5 @@ int main() {
 	// testTableString();
 	// testSaveTable();
 	// testLoadTable();
-	executeQuery("INSERT INTO persona (nome, cognome, eta) VALUES ('Giulio', 'Carlassare', 20);");
+	testExecute();
 }

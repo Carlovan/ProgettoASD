@@ -120,3 +120,20 @@ void testLoadTable() {
 
 	freeTable(&t);
 }
+
+void testExecute() {
+	char queryString[255];
+	printf(">> Query: ");
+	scanf("%[^\n]", queryString);
+	while(strcmp(queryString, "q") != 0) {
+		getchar();
+		bool ok = executeQuery(queryString);
+		if(ok) {
+			printf("OK\n");
+		} else {
+			printf("MALE\n");
+		}
+		printf(">> Query: ");
+		scanf("%[^\n]", queryString);
+	}
+}

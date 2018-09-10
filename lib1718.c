@@ -8,9 +8,12 @@
 
 // Chiama free su una lista di stringhe
 void freeStrings(char*** l, size_t n) {
-	for(int i = 0; i < n; i++)
-		free((*l)[i]);
-	free(*l);
+	if(*l != NULL) {
+		for(int i = 0; i < n; i++)
+			if((*l)[i] != NULL)
+				free((*l)[i]);
+		free(*l);
+	}
 }
 
 // Libera tutta la memoria allocata per un query_t
@@ -371,7 +374,7 @@ bool parseSelect(char *query, query_t* parsed) {
 			parsed->op = OP_EQ;
 		} else if(nextToRead[0] == '>') {
 			nextToRead++;
-			if(nextToRead[1] == '=') {
+			if(nextToRead[0] == '=') {
 				parsed->op = OP_GE;
 				nextToRead++;
 			} else {
@@ -379,7 +382,7 @@ bool parseSelect(char *query, query_t* parsed) {
 			}
 		} else if(nextToRead[0] == '<') {
 			nextToRead++;
-			if(nextToRead[1] == '=') {
+			if(nextToRead[0] == '=') {
 				parsed->op = OP_LE;
 				nextToRead++;
 			} else {
@@ -467,11 +470,11 @@ int srcCOLUMNS(char** columns, char* src, int n_columns) {
 }
 
 // Converte i valori di una colonna in interi. Restituisce NULL se non ci riesce
-int* columnToInt(const table_DB *table, size_t id_column) {
-	int *ints = (int*)malloc(table->n_row * sizeof(int));
-	for(int i = 0; i < table->n_row; i++) {
+int* columnToInt(const table_DB table, size_t id_column) {
+	int *ints = (int*)malloc(table.n_row * sizeof(int));
+	for(int i = 0; i < table.n_row; i++) {
 		// Se non è un intero restituisco NULL
-		char *val = table->data[i][id_column];
+		char *val = table.data[i][id_column];
 		if(!identifyINT(val)) {
 			free(ints);
 			return NULL;
@@ -530,7 +533,7 @@ void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per u
 //ordinamento di interi
 bool sortDBnum(table_DB* DB, int id_column) {
 	//trasformare la colonna di char in un vettore di interi
-	int *vet = columnToInt(DB, id_column);
+	int *vet = columnToInt(*DB, id_column);
 
 	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
 	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);
@@ -646,107 +649,55 @@ bool compareValuesInt(int a, int b, filter_op_t op) {
 	return false; // Non dovrebbe mai arrivarci
 }
 
-bool executeSelect(query_t query, table_DB table, table_DB* result) {
-	// Copio il nome della tabella
-	*result = newTable();
-	result->table_name = (char*)malloc(strlen(table.table_name) + 1);
-	strcpy(result->table_name, table.table_name);
-
-	bool allColumns = query.data[0].colName[0] == '*'; // Solo per scrivere meno
-	if(allColumns) {
-		result->n_columns = table.n_columns;
-	} else {
-		// Conto le colonne della query
-		for(query_data_t* d = query.data; d->colName != NULL; d++, result->n_columns++);
-	}
-	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
-
-	// Copio le colonne e trovo gli id corrispondenti
-	int colIds[result->n_columns];
-	for(int i = 0; i < result->n_columns; i++) {
-		char* colName = allColumns ? table.columns[i] : query.data[i].colName; // Se '*', uso le colonne della tabella stessa
-		result->columns[i] = (char*)malloc(strlen(colName) + 1);
-		strcpy(result->columns[i], colName);
-
-		colIds[i] = allColumns ? i : srcCOLUMNS(table.columns, query.data[i].colName, table.n_columns);
-		if(colIds[i] == -1) {
-			return false;
-		}
-	}
-
-	// Copio i valori della tabella
-	result->n_row = table.n_row;
-	result->data = (char***)malloc(result->n_row * sizeof(char**));
-	for(int i = 0; i < result->n_row; i++) {
-		result->data[i] = (char**)malloc(result->n_columns * sizeof(char*));
-		for(int j = 0; j < result->n_columns; j++) {
-			char* value = table.data[i][colIds[j]];
-			result->data[i][j] = (char*)malloc(strlen(value) + 1);
-			strcpy(result->data[i][j], value);
-		}
-	}
-
-	// if(ok) {
-	// 	freeTable(&table);
-	// 	table = result;
-	// 	if(query.filter == FILTER_WHERE) {
-	// 		if(!applyWhere(query, table, &result)) {
-	// 			ok = false;
-	// 		}
-	// 	} else if(query.filter == FILTER_GROUPBY) {
-	// 		if(!applyGroupBy(query, table, &result)) {
-	// 			ok = false;
-	// 		}
-	// 	} else if(query.filter == FILTER_ORDERBY) {
-	// 		if(!applyOrderBy(query, table, &result)) {
-	// 			ok = false;
-	// 		}
-	// 	}
-	// }
-	return true;
-}
-
 //WHERE
-bool selectWHERE(char *whereCOLUMN, char *valore, filter_op_t operator, table_DB*DB) {
-	int id_column = srcCOLUMNS(DB->columns, whereCOLUMN, DB->n_columns);
+bool selectWHERE(query_t query, table_DB* table) {
+	int id_column = srcCOLUMNS(table->columns, query.filterField, table->n_columns);
 	if (id_column == -1)
 		return false;
 
-	bool typeINTa = identifyINT(valore);
-	bool typeINTb = identifyINT(DB->data[1][id_column]);
-	if (typeINTa != typeINTb)
+	bool isIntQuery = identifyINT(query.filterValue);
+	bool isIntTable = identifyINT(table->data[1][id_column]);
+	if (isIntQuery != isIntTable)
 		return false;
 	
-	int *vet;
+	int* vet = NULL;
 	int aux;
-	//se sono interi bisogna creare il vettore di interi per velocizzare i confronti
-	if (typeINTb == true) {
-		//trasformare la colonna di char in un vettore di interi 
-		vet = columnToInt(DB, id_column);
-		aux = atoi(valore);
+	// Se sono interi converto tutto in int
+	if (isIntTable == true) {
+		// Trasformo la colonna di char in un vettore di interi 
+		vet = columnToInt(*table, id_column);
+		aux = atoi(query.filterValue);
 	}
 
-	int id_next = 0;//dove andrò a inserire la prossima riga
-	bool confronto = false;
-	//mi scorro tutto il DB e costruisco il nuovo DB eliminato gli elementi che non rispettano la condizione
-	for (int i = 0; i < DB->n_row; i++) {
-		if (typeINTa == true) {
-			confronto = compareValuesInt(vet[i], aux, operator);
+	int id_next = 0; // Indice della prossima riga da inserire
+	// Scorro tutta la tabella e costruisco la nuova tabella eliminando gli elementi che non rispettano la condizione
+	for (int i = 0; i < table->n_row; i++) {
+		bool confronto = false;
+		if (isIntTable == true) {
+			confronto = compareValuesInt(vet[i], aux, query.op);
 		} else {
-			confronto = compareValuesStr(DB->data[i][id_column], valore, operator);
+			confronto = compareValuesStr(table->data[i][id_column], query.filterValue, query.op);
 		}
 		
-		//sovrascrivo se rispetta il confronto
-		if (confronto == true) {
-			confronto = false;
-			DB->data[id_next] = DB->data[confronto];
+		// Sovrascrivo se rispetta il confronto
+		if (confronto) {
+			if(id_next < i) { // Se dovrei sostituire la riga con se stessa non faccio niente
+				freeStrings(&table->data[id_next], table->n_columns);
+				table->data[id_next] = table->data[i];
+				table->data[i] = NULL;
+			}
 			id_next++;
 		}
 	}
 
-	//aggiorno il numero righe 
-	DB->n_row = id_next;
-	free(vet);
+	// Aggiorno il numero righe
+	for(int i = id_next; i < table->n_row; i++) {
+		freeStrings(&table->data[i], table->n_columns);
+	}
+	table->n_row = id_next;
+	table->data = (char***)realloc(table->data, table->n_row * sizeof(char**));
+	if(vet)
+		free(vet);
 	return true;
 }
 
@@ -799,6 +750,61 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 
 	DB->n_row = ++id_next;//aggiorno il nuovo numero righe
 	return vet;
+}
+
+bool executeSelect(query_t query, table_DB* table, table_DB* result) {
+	// WHERE ha bisogno anche dei dati non selezionati
+	if(query.filter == FILTER_WHERE) {
+		if(!selectWHERE(query, table))
+			return false;
+	}
+
+	// Copio il nome della tabella
+	*result = newTable();
+	result->table_name = (char*)malloc(strlen(table->table_name) + 1);
+	strcpy(result->table_name, table->table_name);
+
+	bool allColumns = query.data[0].colName[0] == '*'; // Solo per scrivere meno
+	if(allColumns) {
+		result->n_columns = table->n_columns;
+	} else {
+		// Conto le colonne della query
+		for(query_data_t* d = query.data; d->colName != NULL; d++, result->n_columns++);
+	}
+	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
+
+	// Copio le colonne e trovo gli id corrispondenti
+	int colIds[result->n_columns];
+	for(int i = 0; i < result->n_columns; i++) {
+		char* colName = allColumns ? table->columns[i] : query.data[i].colName; // Se '*', uso le colonne della tabella stessa
+		result->columns[i] = (char*)malloc(strlen(colName) + 1);
+		strcpy(result->columns[i], colName);
+
+		colIds[i] = allColumns ? i : srcCOLUMNS(table->columns, query.data[i].colName, table->n_columns);
+		if(colIds[i] == -1) {
+			return false;
+		}
+	}
+
+	// Copio i valori della tabella
+	result->n_row = table->n_row;
+	result->data = (char***)malloc(result->n_row * sizeof(char**));
+	for(int i = 0; i < result->n_row; i++) {
+		result->data[i] = (char**)malloc(result->n_columns * sizeof(char*));
+		for(int j = 0; j < result->n_columns; j++) {
+			char* value = table->data[i][colIds[j]];
+			result->data[i][j] = (char*)malloc(strlen(value) + 1);
+			strcpy(result->data[i][j], value);
+		}
+	}
+
+	if(query.filter == FILTER_GROUPBY) {
+		// applyGroupBy(query, table, &result)
+	} else if(query.filter == FILTER_ORDERBY) {
+		// applyOrderBy(query, table, &result);
+	}
+
+	return true;
 }
 
 bool executeCreate(query_t query, table_DB* result) {
@@ -1104,8 +1110,10 @@ bool executeQuery(char*str) {
 			ok = false;
 		}
 		table_DB result = newTable();
-		if(ok && executeSelect(query, sourceTable, &result)) {
+		if(ok && executeSelect(query, &sourceTable, &result)) {
 			saveSelect(query, result);
+		} else {
+			ok = false;
 		}
 
 		freeTable(&sourceTable);
