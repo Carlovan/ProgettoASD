@@ -818,6 +818,27 @@ bool executeCreate(query_t query, table_DB* result) {
 	return true;
 }
 
+bool executeInsert(query_t query, table_DB* table) {
+	// Check di validita: stessi nomi colonne nello stesso ordine, tanti valori quanti colonne
+	int n_queryColumns = 0;
+	// Conto quante colonne ci sono e che tutte abbiano sia nome che valore
+	for(query_data_t* d = query.data; d->colName != NULL || d->value != NULL; d++, n_queryColumns++) {
+		if(d->colName == NULL || d->value == NULL)
+			return false;
+	}
+	if(n_queryColumns != table->n_columns)
+		return false;
+
+	table->n_row++;
+	table->data = (char***)realloc(table->data, table->n_row * sizeof(char**));
+	table->data[table->n_row - 1] = (char**)malloc(table->n_columns * sizeof(char*));
+	for(int i = 0; i < table->n_columns; i++) {
+		table->data[table->n_row - 1][i] = (char*)malloc(strlen(query.data[i].value) + 1);
+		strcpy(table->data[table->n_row - 1][i], query.data[i].value);
+	}
+	return true;
+}
+
 /*************************************************************************************************
 **                                                                                              **
 **                                      FINE BLOCCO SELECTION                                   **
@@ -1079,7 +1100,7 @@ bool executeQuery(char*str) {
 
 	if(ok && query.action == ACTION_SELECT) {
 		table_DB sourceTable = newTable();
-		if(ok && !loadTable(query.table, &sourceTable)) {
+		if(!loadTable(query.table, &sourceTable)) {
 			ok = false;
 		}
 		table_DB result = newTable();
@@ -1097,6 +1118,16 @@ bool executeQuery(char*str) {
 			ok = false;
 		}
 		freeTable(&result);
+	} else if(ok && query.action == ACTION_INSERT) {
+		table_DB table = newTable();
+		if(loadTable(query.table, &table)) {
+			ok = executeInsert(query, &table);
+			saveTable(table);
+		} else {
+			ok = false;
+		}
+
+		freeTable(&table);
 	}
 
 	freeQuery(&query);
