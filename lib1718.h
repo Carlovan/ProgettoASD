@@ -76,8 +76,8 @@ query_data_t newQueryData();
 table_DB newTable();
 void freeTable(table_DB* t);
 
-char* tableString(table_DB* table);
-void saveTable(table_DB* table);
+char* tableString(table_DB table);
+void saveTable(table_DB table);
 bool loadTable(char* name, table_DB* table);
 
 #endif //LIB1718_H

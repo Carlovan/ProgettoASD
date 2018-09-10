@@ -3,6 +3,7 @@
 int main() {
 	// testParsing();
 	// testTableString();
-	testSaveTable();
-	testLoadTable();
+	// testSaveTable();
+	// testLoadTable();
+	executeQuery("SELECT * FROM nome_tabella;");
 }

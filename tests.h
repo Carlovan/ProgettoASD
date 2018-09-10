@@ -84,7 +84,7 @@ table_DB createTestTable() {
 void testTableString() {
 	table_DB t = createTestTable();
 
-	char *tableStr = tableString(&t);
+	char *tableStr = tableString(t);
 	printf("Table:\n%s\n", tableStr);
 
 	freeTable(&t);
@@ -94,7 +94,7 @@ void testTableString() {
 void testSaveTable() {
 	table_DB t = createTestTable();
 
-	saveTable(&t);
+	saveTable(t);
 
 	freeTable(&t);
 }

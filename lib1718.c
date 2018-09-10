@@ -646,6 +646,66 @@ bool compareValuesInt(int a, int b, filter_op_t op) {
 	return false; // Non dovrebbe mai arrivarci
 }
 
+bool executeSelect(query_t query, table_DB table, table_DB* result) {
+	// Copio il nome della tabella
+	*result = newTable();
+	result->table_name = (char*)malloc(strlen(table.table_name) + 1);
+	strcpy(result->table_name, table.table_name);
+
+	bool allColumns = query.data[0].colName[0] == '*'; // Solo per scrivere meno
+	if(allColumns) {
+		result->n_columns = table.n_columns;
+	} else {
+		// Conto le colonne della query
+		for(query_data_t* d = query.data; d->colName != NULL; d++, result->n_columns++);
+	}
+	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
+
+	// Copio le colonne e trovo gli id corrispondenti
+	int colIds[result->n_columns];
+	for(int i = 0; i < result->n_columns; i++) {
+		char* colName = allColumns ? table.columns[i] : query.data[i].colName; // Se '*', uso le colonne della tabella stessa
+		result->columns[i] = (char*)malloc(strlen(colName) + 1);
+		strcpy(result->columns[i], colName);
+
+		colIds[i] = allColumns ? i : srcCOLUMNS(table.columns, query.data[i].colName, table.n_columns);
+		if(colIds[i] == -1) {
+			return false;
+		}
+	}
+
+	// Copio i valori della tabella
+	result->n_row = table.n_row;
+	result->data = (char***)malloc(result->n_row * sizeof(char**));
+	for(int i = 0; i < result->n_row; i++) {
+		result->data[i] = (char**)malloc(result->n_columns * sizeof(char*));
+		for(int j = 0; j < result->n_columns; j++) {
+			char* value = table.data[i][colIds[j]];
+			result->data[i][j] = (char*)malloc(strlen(value) + 1);
+			strcpy(result->data[i][j], value);
+		}
+	}
+
+	// if(ok) {
+	// 	freeTable(&table);
+	// 	table = result;
+	// 	if(query.filter == FILTER_WHERE) {
+	// 		if(!applyWhere(query, table, &result)) {
+	// 			ok = false;
+	// 		}
+	// 	} else if(query.filter == FILTER_GROUPBY) {
+	// 		if(!applyGroupBy(query, table, &result)) {
+	// 			ok = false;
+	// 		}
+	// 	} else if(query.filter == FILTER_ORDERBY) {
+	// 		if(!applyOrderBy(query, table, &result)) {
+	// 			ok = false;
+	// 		}
+	// 	}
+	// }
+	return true;
+}
+
 //WHERE
 bool selectWHERE(char *whereCOLUMN, char *valore, filter_op_t operator, table_DB*DB) {
 	int id_column = srcCOLUMNS(DB->columns, whereCOLUMN, DB->n_columns);
@@ -753,6 +813,76 @@ int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppan
 **                                                                                              **
 *************************************************************************************************/
 
+// Converte una query in stringa
+char* queryString(query_t query) {
+	char* out = (char*)malloc(1024);
+	if(query.action == ACTION_SELECT) {
+		strcpy(out, "SELECT ");
+		for(query_data_t* d = query.data; d->colName != NULL; d++) {
+			if(d != query.data)
+				strcat(out, ", ");
+			strcat(out, d->colName);
+		}
+		strcat(out, " FROM ");
+		strcat(out, query.table);
+
+		if(query.filter == FILTER_WHERE) {
+			strcat(out, " WHERE ");
+			strcat(out, query.filterField);
+			if(query.op == OP_EQ)
+				strcat(out, " == ");
+			else if(query.op == OP_GT)
+				strcat(out, " > ");
+			else if(query.op == OP_GE)
+				strcat(out, " >= ");
+			else if(query.op == OP_LT)
+				strcat(out, " < ");
+			else if(query.op == OP_LE)
+				strcat(out, " <= ");
+			strcat(out, query.filterValue);
+		} else if(query.filter == FILTER_GROUPBY) {
+			strcat(out, " GROUP BY ");
+			strcat(out, query.filterField);
+		} else if(query.filter == FILTER_ORDERBY) {
+			strcat(out, " ORDER BY ");
+			strcat(out, query.filterField);
+			if(query.op == OP_ASC)
+				strcat(out, " ASC");
+			else if(query.op == OP_DESC)
+				strcat(out, " DESC");
+		}
+		strcat(out, ";");
+	} else if(query.action == ACTION_CREATE) {
+		strcpy(out, "CREATE TABLE ");
+		strcat(out, query.table);
+		strcat(out, " (");
+		for(query_data_t* d = query.data; d->colName != NULL; d++) {
+			if(d != query.data)
+				strcat(out, ", ");
+			strcat(out, d->colName);
+		}
+		strcat(out, ");");
+	} else if(query.action == ACTION_INSERT) {
+		strcpy(out, "INSERT INTO ");
+		strcat(out, query.table);
+		strcat(out, " (");
+		for(query_data_t* d = query.data; d->colName != NULL; d++) {
+			if(d != query.data)
+				strcat(out, ", ");
+			strcat(out, d->colName);
+		}
+		strcat(out, ") VALUES (");
+		for(query_data_t* d = query.data; d->value != NULL; d++) {
+			if(d != query.data)
+				strcat(out, ", ");
+			strcat(out, d->value);
+		}
+		strcat(out, ");");
+	}
+	return out;
+}
+
+// Genera il filename per leggere/salvare una tabella
 char* tableFilename(char* tableName) {
 	char* fileName = (char*)malloc(strlen(tableName) + 5); // 5 = .txt\0
 	strcpy(fileName, tableName);
@@ -760,22 +890,23 @@ char* tableFilename(char* tableName) {
 	return fileName;
 }
 
-char* tableHeaderString(table_DB* table) {
+// Converte la definizione di una tabella (lista campi) in stringa
+char* tableHeaderString(table_DB table) {
 	// "TABLE name COLUMNS "
-	size_t totalSize = 6 + strlen(table->table_name) + 9;
+	size_t totalSize = 6 + strlen(table.table_name) + 9;
 	size_t columnsStart = totalSize; // Indice della stringa dove inizia la lista di colonne
-	for(size_t i = 0; i < table->n_columns; i++) {
-		totalSize += strlen(table->columns[i]) + 1;
+	for(size_t i = 0; i < table.n_columns; i++) {
+		totalSize += strlen(table.columns[i]) + 1;
 	}
 	totalSize++; // Carattere terminatore
 	char *header = (char*)malloc(totalSize);
 
-	sprintf(header, "TABLE %s COLUMNS ", table->table_name);
+	sprintf(header, "TABLE %s COLUMNS ", table.table_name);
 	char *nextToWrite = header + columnsStart;
-	for(size_t i = 0; i < table->n_columns; i++) {
-		strcpy(nextToWrite, table->columns[i]);
-		nextToWrite += strlen(table->columns[i]);
-		if(i < table->n_columns - 1) {
+	for(size_t i = 0; i < table.n_columns; i++) {
+		strcpy(nextToWrite, table.columns[i]);
+		nextToWrite += strlen(table.columns[i]);
+		if(i < table.n_columns - 1) {
 			*nextToWrite = ',';
 		} else {
 			*nextToWrite = ';';
@@ -783,25 +914,27 @@ char* tableHeaderString(table_DB* table) {
 		nextToWrite++;
 	}
 	*nextToWrite = 0;
+
 	return header;
 }
 
-char* tableRowString(table_DB* table, size_t id_row) {
+// Converte in stringa una riga di una tabella
+char* tableRowString(table_DB table, size_t id_row) {
 	// "ROW "
 	size_t totalSize = 4;
 	size_t valuesStart = totalSize; // Indice della stringa dove inizia la lista di valori
-	for(size_t i = 0; i < table->n_columns; i++) {
-		totalSize += strlen(table->data[id_row][i]) + 1;
+	for(size_t i = 0; i < table.n_columns; i++) {
+		totalSize += strlen(table.data[id_row][i]) + 1;
 	}
 	totalSize++; // Carattere terminatore
 	char *row = (char*)malloc(totalSize);
 
 	sprintf(row, "ROW ");
 	char *nextToWrite = row + valuesStart;
-	for(size_t i = 0; i < table->n_columns; i++) {
-		strcpy(nextToWrite, table->data[id_row][i]);
-		nextToWrite += strlen(table->data[id_row][i]);
-		if(i < table->n_columns - 1) {
+	for(size_t i = 0; i < table.n_columns; i++) {
+		strcpy(nextToWrite, table.data[id_row][i]);
+		nextToWrite += strlen(table.data[id_row][i]);
+		if(i < table.n_columns - 1) {
 			*nextToWrite = ',';
 		} else {
 			*nextToWrite = ';';
@@ -812,11 +945,12 @@ char* tableRowString(table_DB* table, size_t id_row) {
 	return row;
 }
 
-char* tableString(table_DB* table) {
+// Converte in stringa un'intera tabella
+char* tableString(table_DB table) {
 	char* header = tableHeaderString(table);
-	char** rows = (char**)malloc(table->n_row * sizeof(char*));
+	char** rows = (char**)malloc(table.n_row * sizeof(char*));
 	size_t totalSize = strlen(header) + 1;
-	for(size_t i = 0; i < table->n_row; i++) {
+	for(size_t i = 0; i < table.n_row; i++) {
 		rows[i] = tableRowString(table, i);
 		totalSize += strlen(rows[i]) + 1;
 	}
@@ -825,19 +959,20 @@ char* tableString(table_DB* table) {
 	char* tableStr = (char*)malloc(totalSize);
 	strcpy(tableStr, header);
 	strcat(tableStr, "\n");
-	for(size_t i = 0; i < table->n_row; i++) {
+	for(size_t i = 0; i < table.n_row; i++) {
 		strcat(tableStr, rows[i]);
 		strcat(tableStr, "\n");
 	}
 	tableStr[totalSize-1] = 0;
 
 	free(header);
-	freeStrings(&rows, table->n_row);
+	freeStrings(&rows, table.n_row);
 	return tableStr;
 }
 
-void saveTable(table_DB* table) {
-	char* fileName = tableFilename(table->table_name);
+// Salva su file una tabella
+void saveTable(table_DB table) {
+	char* fileName = tableFilename(table.table_name);
 	FILE *out = fopen(fileName, "w");
 
 	char* tableStr = tableString(table);
@@ -848,6 +983,7 @@ void saveTable(table_DB* table) {
 	fclose(out);
 }
 
+// Carica da file una tabella
 bool loadTable(char* name, table_DB* table) {
 	char* fileName = tableFilename(name);
 	FILE* in = fopen(fileName, "r");
@@ -890,6 +1026,20 @@ bool loadTable(char* name, table_DB* table) {
 	return true;
 }
 
+// Salva nel file delle select la query e il risultato indicati
+bool saveSelect(query_t query, table_DB result) {
+	char* queryStr = queryString(query);
+	char* tableStr = tableString(result);
+
+	FILE* out = fopen("query_results.txt", "a");
+	fprintf(out, "%s\n%s\n", queryStr, tableStr);
+
+	free(queryStr);
+	free(tableStr);
+	fclose(out);
+	return true;
+}
+
 /*************************************************************************************************
 **                                                                                              **
 **                                 FINE BLOCCO GESTIONE FILESYSTEM                              **
@@ -903,48 +1053,32 @@ bool loadTable(char* name, table_DB* table) {
 *************************************************************************************************/
 
 bool executeQuery(char*str) {
-	// int ok = true;
+	int ok = true;
 
-	// query_t query = newQuery();
-	// if(!parseQuery(str, &query)) {
-	// 	ok = false;
-	// }
+	query_t query = newQuery();
+	if(!parseQuery(str, &query)) {
+		ok = false;
+	}
 
-	// table_DB table = newTable();
-	// if(ok && !loadTable(query.table, &table)) {
-	// 	ok = false;
-	// }
+	table_DB table = newTable();
+	if(ok && !loadTable(query.table, &table)) {
+		ok = false;
+	}
 
-	// if(ok && query.action == ACTION_SELECT) {
-	// 	table_DB result = newTable();
-	// 	if(!executeSelect(query, table, &result)) {
-	// 		ok = false;
-	// 	}
-	// 	if(ok) {
-	// 		freeTable(&table);
-	// 		table = result;
-	// 		if(query.filter == FILTER_WHERE) {
-	// 			if(!applyWhere(query, table, &result)) {
-	// 				ok = false;
-	// 			}
-	// 		} else if(query.filter == FILTER_GROUPBY) {
-	// 			if(!applyGroupBy(query, table, &result)) {
-	// 				ok = false;
-	// 			}
-	// 		} else if(query.filter == FILTER_ORDERBY) {
-	// 			if(!applyOrderBy(query, table, &result)) {
-	// 				ok = false;
-	// 			}
-	// 		}
+	if(ok && query.action == ACTION_SELECT) {
+		table_DB result = newTable();
+		if(!executeSelect(query, table, &result)) {
+			ok = false;
+		}
+		if(ok) {
+			saveSelect(query, result);
+		}
 
-	// 		if(ok) {
-	// 			char* tstr = tableString(&result);
-	// 			puts(tstr);
-	// 			free(tstr);
-	// 		}
-	// 	}
-	// }
+		freeTable(&result);
+	}
 
-	// freeQuery(&query);
-	// freeTable(&table);
+	freeQuery(&query);
+	freeTable(&table);
+
+	return true;
 }
