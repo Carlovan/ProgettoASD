@@ -1004,6 +1004,7 @@ char* tableString(table_DB table) {
 	strcpy(tableStr, header);
 	strcat(tableStr, "\n");
 	for(size_t i = 0; i < table.n_row; i++) {
+		//strcat(tableStr, "ROW");
 		strcat(tableStr, rows[i]);
 		strcat(tableStr, "\n");
 	}
@@ -1102,6 +1103,7 @@ bool executeQuery(char*str) {
 	query_t query = newQuery();
 	if(!parseQuery(str, &query)) {
 		ok = false;
+		//return=false;
 	}
 
 	if(ok && query.action == ACTION_SELECT) {
