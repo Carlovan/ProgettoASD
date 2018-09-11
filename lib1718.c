@@ -9,7 +9,7 @@
 // Chiama free su una lista di stringhe
 void freeStrings(char*** l, size_t n) {
 	if(*l != NULL) {
-		for(int i = 0; i < n; i++)
+		for(size_t i = 0; i < n; i++)
 			if((*l)[i] != NULL)
 				free((*l)[i]);
 		free(*l);
@@ -774,7 +774,7 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
 
 	// Copio le colonne e trovo gli id corrispondenti
-	int colIds[result->n_columns];
+	int* colIds = (int*)malloc(result->n_columns * sizeof(int));
 	for(int i = 0; i < result->n_columns; i++) {
 		char* colName = allColumns ? table->columns[i] : query.data[i].colName; // Se '*', uso le colonne della tabella stessa
 		result->columns[i] = (char*)malloc(strlen(colName) + 1);
@@ -782,6 +782,7 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 
 		colIds[i] = allColumns ? i : srcCOLUMNS(table->columns, query.data[i].colName, table->n_columns);
 		if(colIds[i] == -1) {
+			free(colIds);
 			return false;
 		}
 	}
@@ -804,6 +805,7 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 		// applyOrderBy(query, table, &result);
 	}
 
+	free(colIds);
 	return true;
 }
 
@@ -1039,9 +1041,8 @@ bool loadTable(char* name, table_DB* table) {
 
 	char* nextToRead = NULL;
 	char* tmpPtr;
-	const size_t bufSize = 1024;
-	char tmpBuf[bufSize];
-	fgets(tmpBuf, bufSize, in);
+	char tmpBuf[1024];
+	fgets(tmpBuf, 1024, in);
 	long rowsStart = ftell(in);
 
 	nextToRead = strchr(tmpBuf, ' ') + 1;
@@ -1060,7 +1061,7 @@ bool loadTable(char* name, table_DB* table) {
 
 	fseek(in, rowsStart, SEEK_SET);
 	for(int i = 0; i < table->n_row; i++) {
-		fgets(tmpBuf, bufSize, in);
+		fgets(tmpBuf, 1024, in);
 		nextToRead = strchr(tmpBuf, ' ') + 1;
 		*(strchr(nextToRead, ';')) = 0;
 		splitAndTrim(nextToRead, ',', &(table->data[i]));
