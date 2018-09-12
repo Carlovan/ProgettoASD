@@ -998,7 +998,7 @@ char* tableRowString(table_DB table, size_t id_row) {
 	// "ROW "
 	size_t totalSize = 4;
 	size_t valuesStart = totalSize; // Indice della stringa dove inizia la lista di valori
-	for(size_t i = 0; i < table.n_columns; i++) {
+	for(size_t i = 0; i <table.n_columns; i++) {
 		totalSize += strlen(table.data[id_row][i]) + 1;
 	}
 	totalSize++; // Carattere terminatore

@@ -31,7 +31,7 @@ void printQuery(query_t q) {
 	}
 }
 
-void testParsing() {
+void testParsing(void) {
 	char queryString[255];
 	printf(">> Query: ");
 	scanf("%[^\n]", queryString);
@@ -51,7 +51,7 @@ void testParsing() {
 	}
 }
 
-table_DB createTestTable() {
+table_DB createTestTable(void) {
 	table_DB t = newTable();
 	t.table_name = (char*)malloc(13);
 	strcpy(t.table_name, "nome_tabella");
@@ -81,7 +81,7 @@ table_DB createTestTable() {
 	return t;
 }
 
-void testTableString() {
+void testTableString(void) {
 	table_DB t = createTestTable();
 
 	char *tableStr = tableString(t);
@@ -91,7 +91,7 @@ void testTableString() {
 	free(tableStr);
 }
 
-void testSaveTable() {
+void testSaveTable(void) {
 	table_DB t = createTestTable();
 
 	saveTable(t);
@@ -99,17 +99,17 @@ void testSaveTable() {
 	freeTable(&t);
 }
 
-void testLoadTable() {
+void testLoadTable(void) {
 	table_DB t = newTable();
 	char name[] = "nome_tabella";
 
 	loadTable(name, &t);
 	printf("Table: %s\n", t.table_name);
-	printf("Cols (%d):\n", t.n_columns);
+	printf("Cols (%d):\n",(int) t.n_columns);
 	for(size_t i = 0; i < t.n_columns; i++) {
 		printf("\t%s\n", t.columns[i]);
 	}
-	printf("Rows (%d):\n", t.n_row);
+	printf("Rows (%d):\n",(int) t.n_row);
 	for(size_t i = 0; i < t.n_row; i++) {
 		putchar('\t');
 		for(size_t j = 0; j < t.n_columns; j++) {
@@ -121,7 +121,7 @@ void testLoadTable() {
 	freeTable(&t);
 }
 
-void testExecute() {
+void testExecute(void) {
 	char queryString[255];
 	printf(">> Query: ");
 	scanf("%[^\n]", queryString);

@@ -36,11 +36,6 @@ typedef struct {
 typedef struct {
 	char *table; // Nome tabella
 	action_t action; // SELECTION, CREATE, INSERT
-
-	// Lista di colonne/valori interessate dalla query, terminata da un valore con colName e value entrambi NULL:
-	// colonne tabella per CREATE
-	// colonne e valori da inserire per INSERT
-	// colonne da visualizzare per SELECT
 	query_data_t *data;
 
 	// Specifici per SELECT
@@ -55,8 +50,8 @@ typedef struct {
 	char* table_name;
 	char** columns;
 	char*** data; // Dati nella tabella. es: data[riga][colonna]
-	int n_columns;
-	int n_row;
+	size_t n_columns;
+	size_t n_row;
 } table_DB;
 
 
@@ -71,9 +66,9 @@ bool executeQuery(char*str);
 
 bool parseQuery(char* query, query_t* parsed);
 void freeQuery(query_t*);
-query_t newQuery();
-query_data_t newQueryData();
-table_DB newTable();
+query_t newQuery(void);
+query_data_t newQueryData(void);
+table_DB newTable(void);
 void freeTable(table_DB* t);
 
 char* tableString(table_DB table);
