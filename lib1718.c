@@ -593,13 +593,13 @@ bool sortDB(table_DB* DB, char *column) {
 		return false;
 
 	// Scopro il tipo della colonna
-	bool typeINT = identifyINT(DB->data[1][id_column]);
+	bool typeINT = identifyINT(DB->data[0][id_column]);
 
 	// Ordino per numero o per stringa
 	if (typeINT == true) {
 		return sortDBnum(DB, id_column);
 	} else {
-		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row);
+		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row - 1);
 		return true;
 	}
 }
