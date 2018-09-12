@@ -401,6 +401,9 @@ bool parseSelect(char *query, query_t* parsed) {
 		// Prendo l'indicatore di ordinamento (ASC o DESC)
 		char *tmp;
 		nextToRead = readTrimWord(nextToRead, &tmp, ';');
+		if(tmp == NULL) {
+			return false;
+		}
 		if(strcmp(tmp, "ASC") == 0) {
 			parsed->op = OP_ASC;
 			free(tmp);
@@ -701,18 +704,16 @@ bool selectWHERE(query_t query, table_DB* table) {
 	return true;
 }
 
-//ORDER BY desc vale true quando è desc; desc vale false quando è asc
-bool selectORDERby(char*order_by, int desc, table_DB*DB) {
-	if (sortDB(DB, order_by) == false)
+bool selectORDERby(query_t query, table_DB* table) {
+	if (sortDB(table, query.filterField) == false)
 		return false;
 	
-	if (desc == OP_DESC)//inverti tabella
-	{
-		for(int i = 0, last = DB->n_row - 1; last > i; i++, last--)
-		{
-			char **aux = DB->data[i];
-			DB->data[i] = DB->data[last];
-			DB->data[last] = aux;
+	if (query.op == OP_DESC) {//inverti tabella
+		for(int i = 0; i < table->n_row / 2; i++) {
+			int last = table->n_row - 1 - i;
+			char **aux = table->data[i];
+			table->data[i] = table->data[last];
+			table->data[last] = aux;
 		}
 	}
 	return true;
@@ -756,6 +757,9 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 	// WHERE ha bisogno anche dei dati non selezionati
 	if(query.filter == FILTER_WHERE) {
 		if(!selectWHERE(query, table))
+			return false;
+	} else if(query.filter == FILTER_ORDERBY) {
+		if(!selectORDERby(query, table))
 			return false;
 	}
 
@@ -801,8 +805,6 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 
 	if(query.filter == FILTER_GROUPBY) {
 		// applyGroupBy(query, table, &result)
-	} else if(query.filter == FILTER_ORDERBY) {
-		// applyOrderBy(query, table, &result);
 	}
 
 	free(colIds);
