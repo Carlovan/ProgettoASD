@@ -53,8 +53,9 @@ void freeTable(table_DB* t) {
 	}
 }
 
+
 // Restituisce un nuovo oggetto query_t
-query_t newQuery() {
+query_t newQuery(void) {
 	query_t q;
 	q.table = NULL;
 	q.action = 0;
@@ -67,14 +68,14 @@ query_t newQuery() {
 }
 
 // Restituisce un nuovo oggetto query_data_t
-query_data_t newQueryData() {
+query_data_t newQueryData(void) {
 	query_data_t q;
 	q.colName = NULL;
 	q.value = NULL;
 	return q;
 }
 
-table_DB newTable() {
+table_DB newTable(void) {
 	table_DB t;
 	t.table_name = NULL;
 	t.columns = NULL;
@@ -192,7 +193,7 @@ bool parseCreate(char* query, query_t* parsed) {
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
 
-	for(int i = 0; i < colCount; i++) {
+	for(size_t i = 0; i < colCount; i++) {
 		if(!isValidName(colNames[i])) {
 			freeStrings(&colNames, colCount);
 			return 0;
@@ -462,12 +463,12 @@ bool identifyINT(char* elem) {
 }
 
 // Trova la colonna da ordinare
-int srcCOLUMNS(char** columns, char* src, int n_columns) {
+int srcCOLUMNS(char** columns, char* src, size_t n_columns) {
 	//trovo la parola
-	for (int i = 0; i < n_columns; i++)
+	for (size_t i = 0; i < n_columns; i++)
 	{
 		if (strcmp(columns[i], src) == 0)
-			return i;
+			return (int)i;
 	}
 	return -1;
 }
@@ -475,7 +476,7 @@ int srcCOLUMNS(char** columns, char* src, int n_columns) {
 // Converte i valori di una colonna in interi. Restituisce NULL se non ci riesce
 int* columnToInt(const table_DB table, size_t id_column) {
 	int *ints = (int*)malloc(table.n_row * sizeof(int));
-	for(int i = 0; i < table.n_row; i++) {
+	for(size_t i = 0; i < table.n_row; i++) {
 		// Se non è un intero restituisco NULL
 		char *val = table.data[i][id_column];
 		if(!identifyINT(val)) {
@@ -536,10 +537,11 @@ void sortDBnumQUICKSORT(table_DB*DB, int vet[], int low, int high)//ordina per u
 //ordinamento di interi
 bool sortDBnum(table_DB* DB, int id_column) {
 	//trasformare la colonna di char in un vettore di interi
-	int *vet = columnToInt(*DB, id_column);
+	int *vet = columnToInt(*DB, id_column),aux;
 
 	//ordinamento del vettore di interi(facciamo le stesse operazioni sulle righe del database)
-	sortDBnumQUICKSORT(DB,vet,0,DB->n_row-1);
+	aux = (int)DB->n_row;
+	sortDBnumQUICKSORT(DB,vet,0,aux-1);
 
 	free(vet);
 	return true;
@@ -588,7 +590,8 @@ void sortDBstrQUICKSORT(table_DB* DB, int id_columns, int low, int high){
 // Ordina le righe di una tabella in base alla colonna specificata
 bool sortDB(table_DB* DB, char *column) {
 	// Indice delle colonna
-	int id_column = srcCOLUMNS(DB->columns, column, DB->n_columns);
+	int id_column = srcCOLUMNS(DB->columns, column, (int)DB->n_columns);
+	int aux = (int)DB->n_row;
 	if (id_column == -1)
 		return false;
 
@@ -599,7 +602,7 @@ bool sortDB(table_DB* DB, char *column) {
 	if (typeINT == true) {
 		return sortDBnum(DB, id_column);
 	} else {
-		sortDBstrQUICKSORT(DB, id_column, 0, DB->n_row - 1);
+		sortDBstrQUICKSORT(DB, id_column, 0, aux - 1);
 		return true;
 	}
 }
@@ -664,7 +667,7 @@ bool selectWHERE(query_t query, table_DB* table) {
 		return false;
 	
 	int* vet = NULL;
-	int aux;
+	int aux = 0;
 	// Se sono interi converto tutto in int
 	if (isIntTable == true) {
 		// Trasformo la colonna di char in un vettore di interi 
@@ -672,9 +675,9 @@ bool selectWHERE(query_t query, table_DB* table) {
 		aux = atoi(query.filterValue);
 	}
 
-	int id_next = 0; // Indice della prossima riga da inserire
+	size_t id_next = 0; // Indice della prossima riga da inserire
 	// Scorro tutta la tabella e costruisco la nuova tabella eliminando gli elementi che non rispettano la condizione
-	for (int i = 0; i < table->n_row; i++) {
+	for (size_t i = 0; i < table->n_row; i++) {
 		bool confronto = false;
 		if (isIntTable == true) {
 			confronto = compareValuesInt(vet[i], aux, query.op);
@@ -694,7 +697,7 @@ bool selectWHERE(query_t query, table_DB* table) {
 	}
 
 	// Aggiorno il numero righe
-	for(int i = id_next; i < table->n_row; i++) {
+	for(size_t i = id_next; i < table->n_row; i++) {
 		freeStrings(&table->data[i], table->n_columns);
 	}
 	table->n_row = id_next;
@@ -709,8 +712,8 @@ bool selectORDERby(query_t query, table_DB* table) {
 		return false;
 	
 	if (query.op == OP_DESC) {//inverti tabella
-		for(int i = 0; i < table->n_row / 2; i++) {
-			int last = table->n_row - 1 - i;
+		for(size_t i = 0; i < table->n_row / 2; i++) {
+			size_t last = table->n_row - 1 - i;
 			char **aux = table->data[i];
 			table->data[i] = table->data[last];
 			table->data[last] = aux;
@@ -736,7 +739,7 @@ bool selectGROUPby(query_t query, table_DB* DB) {
 	DB->columns = (char**)realloc(DB->columns, DB->n_columns * sizeof(char*));
 	DB->columns[1] = (char*)malloc(6); // COUNT
 	strcpy(DB->columns[1], "COUNT");
-	for(int i = 0; i < DB->n_row; i++) {
+	for(size_t i = 0; i < DB->n_row; i++) {
 		DB->data[i] = (char**)realloc(DB->data[i], DB->n_columns * sizeof(char*));
 		DB->data[i][DB->n_columns - 1] = NULL;
 	}
@@ -746,8 +749,8 @@ bool selectGROUPby(query_t query, table_DB* DB) {
 
 	//group
 	int id_next = 1; // Prossima riga da sovrascrivere
-	int id_last = 0;
-	for (int i = 0; i < DB->n_row; i++) {
+	size_t id_last = 0;
+	for (size_t i = 0; i < DB->n_row; i++) {
 		if(strcmp(DB->data[i][id_column], DB->data[id_last][id_column]) != 0) { // Se ho appena iniziato un nuovo gruppo
 			char* tmp = DB->data[id_next][id_column];
 			DB->data[id_next][id_column] = DB->data[i][id_column];
@@ -767,7 +770,7 @@ bool selectGROUPby(query_t query, table_DB* DB) {
 	}
 
 	// Libero la memoria inutilizzata
-	for(int i = id_next; i < DB->n_row; i++) {
+	for(size_t i = id_next; i < DB->n_row; i++) {
 		freeStrings(&DB->data[i], DB->n_columns);
 	}
 	DB->n_row = id_next;
@@ -803,7 +806,7 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 
 	// Copio le colonne e trovo gli id corrispondenti
 	int* colIds = (int*)malloc(result->n_columns * sizeof(int));
-	for(int i = 0; i < result->n_columns; i++) {
+	for(int i = 0; i < (int)result->n_columns; i++) {
 		char* colName = allColumns ? table->columns[i] : query.data[i].colName; // Se '*', uso le colonne della tabella stessa
 		result->columns[i] = (char*)malloc(strlen(colName) + 1);
 		strcpy(result->columns[i], colName);
@@ -818,9 +821,9 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 	// Copio i valori della tabella
 	result->n_row = table->n_row;
 	result->data = (char***)malloc(result->n_row * sizeof(char**));
-	for(int i = 0; i < result->n_row; i++) {
+	for(size_t i = 0; i < result->n_row; i++) {
 		result->data[i] = (char**)malloc(result->n_columns * sizeof(char*));
-		for(int j = 0; j < result->n_columns; j++) {
+		for(size_t j = 0; j < result->n_columns; j++) {
 			char* value = table->data[i][colIds[j]];
 			result->data[i][j] = (char*)malloc(strlen(value) + 1);
 			strcpy(result->data[i][j], value);
@@ -848,7 +851,7 @@ bool executeCreate(query_t query, table_DB* result) {
 	if(result->n_columns == 0)
 		return false;
 	result->columns = (char**)malloc(result->n_columns * sizeof(char*));
-	for(int i = 0; i < result->n_columns; i++) {
+	for(size_t i = 0; i < result->n_columns; i++) {
 		result->columns[i] = (char*)malloc(strlen(query.data[i].colName) + 1);
 		strcpy(result->columns[i], query.data[i].colName);
 	}
@@ -863,13 +866,13 @@ bool executeInsert(query_t query, table_DB* table) {
 		if(d->colName == NULL || d->value == NULL)
 			return false;
 	}
-	if(n_queryColumns != table->n_columns)
+	if(n_queryColumns != (int)table->n_columns)
 		return false;
 
 	table->n_row++;
 	table->data = (char***)realloc(table->data, table->n_row * sizeof(char**));
 	table->data[table->n_row - 1] = (char**)malloc(table->n_columns * sizeof(char*));
-	for(int i = 0; i < table->n_columns; i++) {
+	for(size_t i = 0; i < table->n_columns; i++) {
 		table->data[table->n_row - 1][i] = (char*)malloc(strlen(query.data[i].value) + 1);
 		strcpy(table->data[table->n_row - 1][i], query.data[i].value);
 	}
@@ -1085,11 +1088,11 @@ bool loadTable(char* name, table_DB* table) {
 	table->n_columns = splitAndTrim(nextToRead, ',', &table->columns);
 
 	//Contiamo le righe
-	for(char c; (c = fgetc(in)) != EOF; table->n_row += (c == '\n'));
+	for(char c; (c = fgetc(in)) != EOF; table->n_row = (c == '\n') ? ++table->n_row : table->n_row);
 	table->data = (char***)malloc(table->n_row * sizeof(char**));
 
 	fseek(in, rowsStart, SEEK_SET);
-	for(int i = 0; i < table->n_row; i++) {
+	for(size_t i = 0; i < table->n_row; i++) {
 		fgets(tmpBuf, 1024, in);
 		nextToRead = strchr(tmpBuf, ' ') + 1;
 		*(strchr(nextToRead, ';')) = 0;
