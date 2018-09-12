@@ -719,38 +719,62 @@ bool selectORDERby(query_t query, table_DB* table) {
 	return true;
 }
 
-//GROUP BY
-int* selectGROUPby(char* group_by, table_DB* DB){//modifica la tabella ragruppando per colonna, restituisce un vettore di interi lungo n_row del DB oppure NULL in caso di errore
-	int id_next = 0;//che si posiziona dove si può sovrascrivere il prossimo elemento
-	int id_columns = srcCOLUMNS(DB->columns, group_by, DB->n_columns);
-	int *vet;
-
-	if (id_columns == -1)
-		return NULL;
-	vet = (int*)malloc(DB->n_row * sizeof(int));
+// Modifica la tabella ragruppando per colonna
+bool selectGROUPby(query_t query, table_DB* DB) {
+	// Controlli di validità
+	if(DB->n_columns != 1 || strcmp(DB->columns[0], query.filterField) != 0) {
+		return false;
+	}
+	int id_column = 0;
 
 	//ordina
-	if (sortDB(DB, group_by) == false)
+	if (sortDB(DB, query.filterField) == false)
 		return false;
 
-	//group
-	int count_group = 1;//contatore delle righe che hanno la colonna uguale
-	char *last = NULL;
-	for (int i = 0; i < DB->n_row; i++) {
-		if(i == 0 || strcmp(DB->data[i][id_columns], last) == 0) {
-			count_group++;//conto le righe che hanno le colonne uguali
-		} else {//se sono diversi raggruppo
-			vet[id_next] = count_group;//carico il numero di righe uguali nel vettore
-			DB->data[id_next] = DB->data[i];//carico la riga nella prima disponibile 
-			id_next++;//incremento l'indice in cui andrò a scrivere/sovrascrivere al prossimo raggruppo
-			count_group = 1;//inizializzo di nuovo il conteggio
-			last = DB->data[i][id_columns];//carico la nuova stringa da confrontare 
-		}
+	// Alloco la memoria per la nuova colonna dei conteggi
+	DB->n_columns = 2;
+	DB->columns = (char**)realloc(DB->columns, DB->n_columns * sizeof(char*));
+	DB->columns[1] = (char*)malloc(6); // COUNT
+	strcpy(DB->columns[1], "COUNT");
+	for(int i = 0; i < DB->n_row; i++) {
+		DB->data[i] = (char**)realloc(DB->data[i], DB->n_columns * sizeof(char*));
+		DB->data[i][DB->n_columns - 1] = NULL;
 	}
-	vet[id_next] = count_group;//carico il numero di righe uguali nel vettore
 
-	DB->n_row = ++id_next;//aggiorno il nuovo numero righe
-	return vet;
+	int* counts = (int*)malloc(DB->n_row * sizeof(int));
+	memset(counts, 0, DB->n_row * sizeof(int));
+
+	//group
+	int id_next = 1; // Prossima riga da sovrascrivere
+	int id_last = 0;
+	for (int i = 0; i < DB->n_row; i++) {
+		if(strcmp(DB->data[i][id_column], DB->data[id_last][id_column]) != 0) { // Se ho appena iniziato un nuovo gruppo
+			char* tmp = DB->data[id_next][id_column];
+			DB->data[id_next][id_column] = DB->data[i][id_column];
+			DB->data[i][id_column] = tmp;
+			id_next++; // Incremento l'indice in cui andrò a scrivere al prossimo raggruppo
+			id_last = i;
+		}
+		counts[id_next-1]++;
+	}
+
+	// Inserisco i conteggi nella tabella
+	for(int i = 0; i < id_next; i++) {
+		char tmp[15];
+		sprintf(tmp, "%d", counts[i]);
+		DB->data[i][DB->n_columns - 1] = (char*)malloc(strlen(tmp) + 1);
+		strcpy(DB->data[i][DB->n_columns - 1], tmp);
+	}
+
+	// Libero la memoria inutilizzata
+	for(int i = id_next; i < DB->n_row; i++) {
+		freeStrings(&DB->data[i], DB->n_columns);
+	}
+	DB->n_row = id_next;
+	DB->data = (char***)realloc(DB->data, DB->n_row * sizeof(char**));
+
+	free(counts);
+	return true;
 }
 
 bool executeSelect(query_t query, table_DB* table, table_DB* result) {
@@ -804,7 +828,10 @@ bool executeSelect(query_t query, table_DB* table, table_DB* result) {
 	}
 
 	if(query.filter == FILTER_GROUPBY) {
-		// applyGroupBy(query, table, &result)
+		if(!selectGROUPby(query, result)) {
+			free(colIds);
+			return false;
+		}
 	}
 
 	free(colIds);
