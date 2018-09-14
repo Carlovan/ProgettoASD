@@ -1,15 +1,15 @@
 #ifndef LIB1718_H
 #define LIB1718_H
-
+typedef unsigned int     size_t;
 #define bool int
 #define true 1
 #define false 0
-
 
 #define ACTION_CREATE 1
 #define ACTION_INSERT 2
 #define ACTION_SELECT 3
 typedef int action_t;
+
 
 #define FILTER_NONE 10
 #define FILTER_WHERE 11
