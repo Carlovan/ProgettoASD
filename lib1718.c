@@ -8,9 +8,9 @@
 
 // Chiama free su una lista di stringhe
 void freeStrings(char*** l, size_t n) {
-	if(*l != NULL) {
-		for(size_t i = 0; i < n; i++)
-			if((*l)[i] != NULL)
+	if (*l != NULL) {
+		for (size_t i = 0; i < n; i++)
+			if ((*l)[i] != NULL)
 				free((*l)[i]);
 		free(*l);
 	}
@@ -1088,8 +1088,9 @@ bool loadTable(char* name, table_DB* table) {
 	table->n_columns = splitAndTrim(nextToRead, ',', &table->columns);
 
 	//Contiamo le righe
-	for(char c; (c = fgetc(in)) != EOF; table->n_row = (c == '\n') ? ++table->n_row : table->n_row);
+	for(char c; (c = fgetch(in)) != EOF; table->n_row = (c == '\n') ? ++table->n_row : table->n_row);
 	table->data = (char***)malloc(table->n_row * sizeof(char**));
+
 
 	fseek(in, rowsStart, SEEK_SET);
 	for(size_t i = 0; i < table->n_row; i++) {
