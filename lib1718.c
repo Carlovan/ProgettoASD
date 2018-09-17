@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <time.h>
 
 
 // Chiama free su una lista di stringhe
@@ -501,6 +502,16 @@ void sortDBnumSWAP(int* a, int* b, char*** c, char*** d)
 	*c = *d;
 	*d = aux_char;
 }
+int pivotNUM(table_DB*DB, int vet[], int low, int high) {
+	int n_elem = (high - low);
+
+	//da finire
+
+	return 0;
+	
+	
+
+}
 
 //funzione ausiliare per l'ordinamento di interi
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition della funzione sortDBnumQUICKSORT
@@ -599,6 +610,7 @@ bool sortDB(table_DB* DB, char *column) {
 	// Scopro il tipo della colonna
 	bool typeINT = identifyINT(DB->data[0][id_column]);
 
+	srand(time(NULL));
 	// Ordino per numero o per stringa
 	if (typeINT == true) {
 		return sortDBnum(DB, id_column);
