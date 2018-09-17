@@ -503,20 +503,35 @@ void sortDBnumSWAP(int* a, int* b, char*** c, char*** d)
 	*d = aux_char;
 }
 int pivotNUM(table_DB*DB, int vet[], int low, int high) {
-	int n_elem = (high - low);
+	//inizializazione
+	int n_elem = (high - low)+1, a=0, b=0, c=0;
+	a = (rand() % n_elem) + low;
+	b = (rand() % n_elem) + low;
+	c = (rand() % n_elem) + low;
 
-	//da finire
-
-	return 0;
-	
-	
+	//trovo il mediano
+	if (vet[a] >= vet[b])
+		if (vet[c] >= vet[b])
+			if (vet[a] >= vet[c])
+				return vet[c];
+			else
+				return vet[a];
+		else
+			return vet[b];
+	else if (vet[c] <= vet[b])
+		if (vet[c] <= vet[a])
+			return vet[a];
+		else
+			return vet[c];
+	else
+		return vet[b];
 
 }
 
 //funzione ausiliare per l'ordinamento di interi
 int sortDBnumPARTITION(table_DB*DB, int vet[], int low, int high)//partition della funzione sortDBnumQUICKSORT
 {
-	int pivot = vet[high];    // pivot
+	int pivot = pivotNUM(DB, vet, low, high);
 	int i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
 
 	for (int j = low; j <= high - 1; j++)
@@ -565,11 +580,41 @@ void sortDBstrSWAP(char*** a, char*** b) {
 	*a = *b;
 	*b = aux;
 }
+char* pivotSTR(table_DB*DB, int id_columns, int low, int high) {
+	//inizializazione
+	int n_elem = (high - low) + 1, a = 0, b = 0, c = 0;
+	a = (rand() % n_elem) + low;
+	b = (rand() % n_elem) + low;
+	c = (rand() % n_elem) + low;
+
+	char *ca, *cb, *cc;
+	ca = DB->data[a][id_columns];
+	cb = DB->data[b][id_columns];
+	cc = DB->data[c][id_columns];
+
+	//trovo il mediano
+	if (strcmp(ca,cb) >= 0)
+		if (strcmp(cc, cb)>= 0)
+			if (strcmp(ca, cc) >= 0)
+				return cc;
+			else
+				return ca;
+		else
+			return cb;
+	else if (strcmp(cc, cb)<= 0)
+		if (strcmp(cc, ca) <= 0)
+			return ca;
+		else
+			return cc;
+	else
+		return cb;
+
+}
 
 //funzione ausiliare per l'ordinamento stringhe
 int sortDBstrPARTITION(table_DB*DB, int id_columns, int low, int high)//partition della funzione sortDBnumQUICKSORT
 {
-	char *pivot = DB->data[high][id_columns];// pivot: vado a l'ultima riga e prendo la colonna che devo ordinare
+	char *pivot = pivotSTR(DB,id_columns,low,high); // pivot
 	int i = (low - 1); //inizializzo a -1 perchè lo swap inizia con i++
 
 	for (int j = low; j <= high - 1; j++)
@@ -610,7 +655,7 @@ bool sortDB(table_DB* DB, char *column) {
 	// Scopro il tipo della colonna
 	bool typeINT = identifyINT(DB->data[0][id_column]);
 
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 	// Ordino per numero o per stringa
 	if (typeINT == true) {
 		return sortDBnum(DB, id_column);
