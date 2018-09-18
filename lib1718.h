@@ -1,6 +1,6 @@
 #ifndef LIB1718_H
+#include <stddef.h>
 #define LIB1718_H
-typedef unsigned int     size_t;
 #define bool int
 #define true 1
 #define false 0

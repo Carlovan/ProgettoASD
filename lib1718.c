@@ -1146,7 +1146,7 @@ bool loadTable(char* name, table_DB* table) {
 	table->n_columns = splitAndTrim(nextToRead, ',', &table->columns);
 
 	//Contiamo le righe
-	for(char c; (c = (char)fgetc(in)) != EOF; table->n_row = (c == '\n') ? ++table->n_row : table->n_row);
+	for(char c; (c = (char)fgetc(in)) != EOF; table->n_row += (c == '\n'));
 	table->data = (char***)malloc(table->n_row * sizeof(char**));
 
 
