@@ -182,12 +182,11 @@ bool isValidValue(char *val) {
 bool parseCreate(char* query, query_t* parsed) {
 	parsed->action = ACTION_CREATE;
 	int readCount = 0;
-	char cols[1000], table[1000], semicolon[2];
+	char cols[1000], table[1000];
 	memset(cols, 0, 1000);
 	memset(table, 0, 1000);
-	memset(semicolon, 0, 2);
 
-	readCount = sscanf(query, " CREATE TABLE %s (%[^)]) %1[;]", table, cols, semicolon);
+	readCount = sscanf(query, " CREATE TABLE %s (%[^)])", table, cols);
 	if(readCount != 3) return 0;
 	parsed->table = (char*)malloc(strlen(table) + 1);
 	strcpy(parsed->table, table);
@@ -216,13 +215,12 @@ bool parseCreate(char* query, query_t* parsed) {
 bool parseInsert(char* query, query_t* parsed) {
 	parsed->action = ACTION_INSERT;
 	int readCount = 0;
-	char cols[1000], table[1000], values[1000], semicolon[2];
+	char cols[1000], table[1000], values[1000];
 	memset(cols, 0, 1000);
 	memset(table, 0, 1000);
 	memset(values, 0, 1000);
-	memset(semicolon, 0, 2);
 
-	readCount = sscanf(query, " INSERT INTO %s (%[^)]) VALUES (%[^)]) %1[;]", table, cols, values, semicolon);
+	readCount = sscanf(query, " INSERT INTO %s (%[^)]) VALUES (%[^)])", table, cols, values);
 	if(readCount != 4) return 0;
 	parsed->table = (char*)malloc(strlen(table) + 1);
 	strcpy(parsed->table, table);
@@ -309,7 +307,7 @@ bool parseSelect(char *query, query_t* parsed) {
 	free(colNames); // Libero solo il puntatore, le stringhe sono in parsed->data
 
 	// Prendo il nome della tabella
-	char *tablePointer = readTrimWord(FROM+4, &(parsed->table), ';');
+	char *tablePointer = readTrimWord(FROM+4, &(parsed->table), 0);
 	if(!isValidName(parsed->table))
 		return 0;
 
@@ -353,7 +351,7 @@ bool parseSelect(char *query, query_t* parsed) {
 		nextToRead = by + 2;
 	}
 
-	char *end = strstr(nextToRead, ";");
+	char *end = strstr(nextToRead, "\0");
 	if(end == NULL) {
 		return 0;
 	}
@@ -361,7 +359,7 @@ bool parseSelect(char *query, query_t* parsed) {
 	// Tutti i filtri hanno per prima cosa il campo
 	if(parsed->filter != FILTER_NONE) {
 		// Prendo il nome della colonna eliminando prima tutti gli spazi, e fermandomi al primo spazio
-		nextToRead = readTrimWord(nextToRead, &(parsed->filterField), ';');
+		nextToRead = readTrimWord(nextToRead, &(parsed->filterField), 0);
 		if(parsed->filterField == NULL || !isValidName(parsed->filterField)) {
 			return 0;
 		}
@@ -396,14 +394,14 @@ bool parseSelect(char *query, query_t* parsed) {
 		}
 
 		// Prendo il valore da confrontare eliminando prima tutti gli spazi, e fermandomi al primo spazio
-		nextToRead = readTrimWord(nextToRead, &(parsed->filterValue), ';');
+		nextToRead = readTrimWord(nextToRead, &(parsed->filterValue), 0);
 		if(parsed->filterValue == NULL || !isValidValue(parsed->filterValue)) {
 			return 0;
 		}
 	} else if(parsed->filter == FILTER_ORDERBY) {
 		// Prendo l'indicatore di ordinamento (ASC o DESC)
 		char *tmp;
-		nextToRead = readTrimWord(nextToRead, &tmp, ';');
+		nextToRead = readTrimWord(nextToRead, &tmp, 0);
 		if(tmp == NULL) {
 			return false;
 		}
