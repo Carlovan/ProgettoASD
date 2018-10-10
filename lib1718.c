@@ -180,19 +180,60 @@ bool isValidValue(char *val) {
 }
 
 bool parseCreate(char* query, query_t* parsed) {
+	char *c;
+	int len;
 	parsed->action = ACTION_CREATE;
-	int readCount = 0;
-	char cols[1000], table[1000];
-	memset(cols, 0, 1000);
-	memset(table, 0, 1000);
 
-	readCount = sscanf(query, " CREATE TABLE %s (%[^)])", table, cols);
-	if(readCount != 3) return 0;
-	parsed->table = (char*)malloc(strlen(table) + 1);
-	strcpy(parsed->table, table);
+	// Trovo la prima occorrenza di 'CREATE' e controllo che sia preceduta solo da spazi
+	char *nextToRead = strstr(query, "CREATE ");
+	if(nextToRead == NULL)
+		return 0;
+	for(char *c = query; c < nextToRead; c++) {
+		if(!isblank(*c))
+			return 0;
+	}
+	nextToRead += 6; // Primo carattere dopo la parola
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+
+	// Controllo che ci sia TABLE
+	if(strncmp(nextToRead, "TABLE ", 6) != 0) {
+		return 0;
+	}
+	nextToRead += 5;
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+
+	for(c = nextToRead; isalpha(*c) || *c == '_'; c++);
+	len = c - nextToRead;
+	parsed->table = (char*)malloc(len + 1);
+	strncpy(parsed->table, nextToRead, len);
+	parsed->table[len] = 0;
+	nextToRead = c;
+	if(!isValidName(parsed->table)) {
+		return 0;
+	}
+
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+	if(*nextToRead != '(') {
+		return 0;
+	}
+	char* closingBracket = strchr(nextToRead, ')');
+	if(closingBracket == NULL) {
+		return 0;
+	}
+	// Controllo che dopo la parentesi ci siano solo spazi
+	for(c = closingBracket+1; *c == ' '; c++);
+	if(*c != 0) {
+		return 0;
+	}
+
+	len = closingBracket - nextToRead - 1;
+	char* cols = (char*)malloc(len + 1);
+	strncpy(cols, nextToRead+1, len);
+	cols[len] = 0;
 
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
+	free(cols);
 
 	for(size_t i = 0; i < colCount; i++) {
 		if(!isValidName(colNames[i])) {
@@ -221,7 +262,7 @@ bool parseInsert(char* query, query_t* parsed) {
 	memset(values, 0, 1000);
 
 	readCount = sscanf(query, " INSERT INTO %s (%[^)]) VALUES (%[^)])", table, cols, values);
-	if(readCount != 4) return 0;
+	if(readCount != 3) return 0;
 	parsed->table = (char*)malloc(strlen(table) + 1);
 	strcpy(parsed->table, table);
 
