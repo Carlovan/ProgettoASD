@@ -202,6 +202,7 @@ bool parseCreate(char* query, query_t* parsed) {
 	nextToRead += 5;
 	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
 
+	// Leggo il nome della tabella
 	for(c = nextToRead; isalpha(*c) || *c == '_'; c++);
 	len = c - nextToRead;
 	parsed->table = (char*)malloc(len + 1);
@@ -254,29 +255,92 @@ bool parseCreate(char* query, query_t* parsed) {
 }
 
 bool parseInsert(char* query, query_t* parsed) {
+	char* c;
+	int len;
+	char* closingBracket;
 	parsed->action = ACTION_INSERT;
-	int readCount = 0;
-	char cols[1000], table[1000], values[1000];
-	memset(cols, 0, 1000);
-	memset(table, 0, 1000);
-	memset(values, 0, 1000);
 
-	readCount = sscanf(query, " INSERT INTO %s (%[^)]) VALUES (%[^)])", table, cols, values);
-	if(readCount != 3) return 0;
-	parsed->table = (char*)malloc(strlen(table) + 1);
-	strcpy(parsed->table, table);
+	// Trovo la prima occorrenza di 'INSERT' e controllo che sia preceduta solo da spazi
+	char *nextToRead = strstr(query, "INSERT ");
+	if(nextToRead == NULL)
+		return 0;
+	for(char *c = query; c < nextToRead; c++) {
+		if(!isblank(*c))
+			return 0;
+	}
+	nextToRead += 6; // Primo carattere dopo la parola
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+
+	// Controllo che ci sia INTO
+	if(strncmp(nextToRead, "INTO ", 5) != 0) {
+		return 0;
+	}
+	nextToRead += 4;
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+
+	// Leggo il nome della tabella
+	for(c = nextToRead; isalpha(*c) || *c == '_'; c++);
+	len = c - nextToRead;
+	parsed->table = (char*)malloc(len + 1);
+	strncpy(parsed->table, nextToRead, len);
+	parsed->table[len] = 0;
+	nextToRead = c;
+	if(!isValidName(parsed->table)) {
+		return 0;
+	}
+
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+	if(*nextToRead != '(') {
+		return 0;
+	}
+	closingBracket = strchr(nextToRead, ')');
+	if(closingBracket == NULL) {
+		return 0;
+	}
+
+	len = closingBracket - nextToRead - 1;
+	char* cols = (char*)malloc(len + 1);
+	strncpy(cols, nextToRead+1, len);
+	cols[len] = 0;
 
 	char **colNames;
 	size_t colCount = splitAndTrim(cols, ',', &colNames);
+	free(cols);
+
 	for(size_t i = 0; i < colCount; i++) {
 		if(!isValidName(colNames[i])) {
 			freeStrings(&colNames, colCount);
 			return 0;
 		}
 	}
+	nextToRead = closingBracket + 1;
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+
+	// Controllo che ci sia VALUES
+	if(strncmp(nextToRead, "VALUES ", 7) != 0) {
+		return 0;
+	}
+	nextToRead += 7;
+
+	// Leggo la lista dei valori
+	while(*nextToRead == ' ') nextToRead++; // Salto tutti gli spazi
+	if(*nextToRead != '(') {
+		return 0;
+	}
+	closingBracket = strchr(nextToRead, ')');
+	if(closingBracket == NULL) {
+		return 0;
+	}
+
+	len = closingBracket - nextToRead - 1;
+	char* values = (char*)malloc(len + 1);
+	strncpy(values, nextToRead+1, len);
+	values[len] = 0;
 
 	char **valList;
 	size_t valCount = splitAndTrim(values, ',', &valList);
+	free(values);
+
 	for(size_t i = 0; i < valCount; i++) {
 		if(!isValidValue(valList[i])) {
 			freeStrings(&colNames, colCount);
