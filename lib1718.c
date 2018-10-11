@@ -163,20 +163,20 @@ char* readTrimWord(char* str, char** dest, char terminator) {
 //   - inizia e finisce con ' (stringa)
 //   - non inizia con zero E sono tutte cifre (numero)
 bool isValidValue(char *val) {
-	size_t valLen = strlen(val);
-	if(valLen == 0)
-		return 0;
-	// È una stringa
-	if(valLen >= 2 && (val[0] == '\'' && val[valLen-1] == '\''))
-		return 1;
-	// Controllo se è un numero valido
-	if(val[0] == '0') // Non puo iniziare per 0
-		return 0;
-	for(char *c = val; *c != 0; c++) {
-		if(!isdigit(*c))
-			return 0;
-	}
-	return 1;
+	// size_t valLen = strlen(val);
+	// if(valLen == 0)
+	// 	return 0;
+	// // È una stringa
+	// if(valLen >= 2 && (val[0] == '\'' && val[valLen-1] == '\''))
+	// 	return 1;
+	// // Controllo se è un numero valido
+	// if(val[0] == '0') // Non puo iniziare per 0
+	// 	return 0;
+	// for(char *c = val; *c != 0; c++) {
+	// 	if(!isdigit(*c))
+	// 		return 0;
+	// }
+	return 1; // In realtà tutti i valori sono validi
 }
 
 bool parseCreate(char* query, query_t* parsed) {
